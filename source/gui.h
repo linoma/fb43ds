@@ -5,6 +5,19 @@
 #ifndef __GUIH__
 #define __GUIH__
 
+class CTopDesktop : public CDesktop{
+public:
+	CTopDesktop();
+	virtual ~CTopDesktop(){};
+	virtual int draw(u8 *screen);
+};
+
+class CBottomDesktop : public CDesktop{
+public:
+	CBottomDesktop();
+	virtual ~CBottomDesktop(){};
+};
+
 int gui_init();
 int gui_destroy();
 

@@ -36,9 +36,11 @@ public:
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
 	int set_Parent(CBaseWindow *w){parent = w;return 0;};
 	CBaseWindow *get_Parent(){return parent;};
-	CBaseWindow *get_Desktop();
 	virtual int Invalidate();	
 protected:
+	virtual int isInvalidate();
+	CBaseWindow *get_Desktop();
+	
 	u32 color,bkcolor,status,ID,redraw;
 	gfxScreen_t scr;
 	RECT sz;

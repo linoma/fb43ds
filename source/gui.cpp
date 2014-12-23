@@ -4,16 +4,14 @@
 #include <string.h>
 #include <malloc.h>
 #include "widgets.h"
+#include "gfxdraw.h"
 
 CDesktop *top,*bottom;
 //---------------------------------------------------------------------------
 int gui_init()
 {
-	top = new CDesktop(GFX_TOP);
-	top->set_BkColor(0xFFFFFFFF);
-	bottom = new CDesktop(GFX_BOTTOM);
-	bottom->set_BkColor(0xFF0000FF);
-
+	top = new CTopDesktop();
+	bottom = new CBottomDesktop();
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -34,4 +32,23 @@ extern "C" int widgets_draws()
 extern "C" int widgets_touch_events(touchPosition *p)
 {
 	return bottom->onTouchEvent(p);	
+}
+//---------------------------------------------------------------------------
+CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
+{
+	bkcolor = 0xFFd3d8e8;
+}
+//---------------------------------------------------------------------------
+int CTopDesktop::draw(u8 *screen)
+{
+	if(!isInvalidate())
+		gfxGradientFillRect(&sz,0,1,0xFFFFFFFF,bkcolor,screen);
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
+		(*win)->draw(screen);
+	return 0;	
+}
+//---------------------------------------------------------------------------
+CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
+{
+	bkcolor = 0xFF3a5795;
 }

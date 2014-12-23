@@ -137,15 +137,22 @@ CBaseWindow::~CBaseWindow()
 {
 }
 //---------------------------------------------------------------------------
-int CBaseWindow::draw(u8 *screen)
+int CBaseWindow::isInvalidate()
 {
-	u8 r,g,b;
-	
 	if(!redraw)
 		return -1;
 	redraw--;
 	if(!redraw)
 		status &= ~2;
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::draw(u8 *screen)
+{
+	u8 r,g,b;
+	
+	if(isInvalidate())
+		return -1;
 	if((bkcolor >> 24) == 0)
 		return 0;
 	r = (u8)(bkcolor >> 16);
@@ -192,7 +199,7 @@ int CBaseWindow::onActivate(int v)
 //---------------------------------------------------------------------------
 int CBaseWindow::Invalidate()
 {
-	redraw = 2;
+	redraw = 3;
 	status |= 2;		
 	return 0;
 }
@@ -230,8 +237,7 @@ CContainerWindow::CContainerWindow(gfxScreen_t s) : CBaseWindow(s)
 //---------------------------------------------------------------------------
 int CContainerWindow::draw(u8 *screen)
 {
-	//CBaseWindow::draw(screen);
-	gfxGradientFillRect(&sz,0,1,0xFFFFFFFF,0xFF0000FF,screen);
+	CBaseWindow::draw(screen);
 	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
 		(*win)->draw(screen);
 	return 0;

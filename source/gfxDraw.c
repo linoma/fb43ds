@@ -38,25 +38,24 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 	else{ 
 		Y1 = prc->bottom;
 		Y2 = prc->top;
-	}
-			
+	}		
+	{
+		s32 i = (mode ? (Y2-Y1) : (X2-X1));
 	
-	if(mode){
-		x = (Y2-Y1)<<12;
+		ri = ((re-rs) << 12);
+		gi = ((ge-gs) << 12);
+		bi = ((be-bs) << 12);
+		ri /= i;	
+		gi /= i;
+		bi /= i;
 	}
-	else{
-		x = (X2-X1) << 12;
-	}
-	
-	ri = ((s32)(re << 12) - (s32)(rs << 12)) / x;
-	gi = ((s32)(ge << 12) - (s32)(gs << 12)) / x;
-	bi = ((s32)(be << 12) - (s32)(bs << 12)) / x;
 	
 	screen += (240 - Y1 + X1 * 240) * 3;
-	rf = re << 12;
-	gf = ge << 12;
-	bf = be << 12;
 	
+	rf = rs << 12;
+	gf = gs << 12;
+	bf = bs << 12;
+
 	if(mode){
 		for(x=X1;x<=X2;x++){
 			u8 *p = screen;
@@ -69,9 +68,9 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 				p[0] = b >> 12;
 				p[1] = g >> 12;
 				p[2] = r >> 12;
-				r -= ri;
-				g -= gi;
-				b -= bi;				
+				r += ri;
+				g += gi;
+				b += bi;
 			}
 			screen += 240*3;
 		}	
