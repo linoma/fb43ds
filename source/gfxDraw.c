@@ -83,9 +83,9 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 				p[1] = gf >> 12;
 				p[2] = rf >> 12;
 			}
-			rf -= ri;
-			gf -= gi;
-			bf -= bi;
+			rf += ri;
+			gf += gi;
+			bf += bi;
 			screen += 240*3;
 		}
 	}
