@@ -9,19 +9,28 @@ void gfxPixel(int x, int y, char r, char g, char b, u8* screen)
 	screen[2]=r;
 }
 //---------------------------------------------------------------------------
+void gfxDrawImage(u8 *dst,LPRECT pdrc,u8 *src,LPRECT psrc)
+{
+	if(!dst || !src || !pdrc || !psrc)
+		return;
+	dst += (240-pdrc->top+pdrc->left*240)*3;
+}
+//---------------------------------------------------------------------------
 void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *screen)
 {
 	s32 X1,X2,Y1,Y2;
-	u32 rf,gf,bf,rs,gs,bs,re,ge,be,x,y;
-	s32 ri,gi,bi;
+	u32 rf,gf,bf,rs,gs,bs,re,ge,be,x,y,af,as,ae;
+	s32 ri,gi,bi,ai;
 	
 	rs = (u32)(u8)(s_col >> 16);
 	gs = (u32)(u8)(s_col >> 8);
 	bs = (u32)(u8)s_col;
+	as = (u32)(u8)(s_col >> 24);
 	
 	re = (u32)(u8)(e_col >> 16);
 	ge = (u32)(u8)(e_col >> 8);
 	be = (u32)(u8)e_col;
+	ae = (u32)(u8)(e_col >> 24);
 	
 	if(prc->left < prc->right){ 
 		X1 = prc->left;
@@ -45,9 +54,12 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 		ri = ((re-rs) << 12);
 		gi = ((ge-gs) << 12);
 		bi = ((be-bs) << 12);
+		ai = ((ae-as) << 12);
+		
 		ri /= i;	
 		gi /= i;
 		bi /= i;
+		ai /= i;
 	}
 	
 	screen += (240 - Y1 + X1 * 240) * 3;
@@ -55,22 +67,27 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 	rf = rs << 12;
 	gf = gs << 12;
 	bf = bs << 12;
-
+	af = as << 12;
+	
 	if(mode){
 		for(x=X1;x<=X2;x++){
 			u8 *p = screen;
-			u32 r,g,b;
+			u32 r,g,b,a;
 			
 			r = rf;
 			g = gf;
 			b = bf;
+			a = af;
 			for(y=Y1;y<=Y2;y++,p-=3){
-				p[0] = b >> 12;
-				p[1] = g >> 12;
-				p[2] = r >> 12;
+				u8 da = a >> 12;
+				u8 sa = (255 - da);
+				p[0] = (p[0] * sa + (b >> 12) * da) >> 8;
+				p[1] = (p[1] * sa + (g >> 12) * da) >> 8;
+				p[2] = (p[2] * sa + (r >> 12) * da) >> 8;
 				r += ri;
 				g += gi;
 				b += bi;
+				a += ai;
 			}
 			screen += 240*3;
 		}	
@@ -78,14 +95,17 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 	else{
 		for(x=X1;x<=X2;x++){
 			u8 *p = screen;
+			u8 da = af >> 12;
+			u8 sa = 255-da;
 			for(y=Y1;y<=Y2;y++,p-=3){
-				p[0] = bf >> 12;
-				p[1] = gf >> 12;
-				p[2] = rf >> 12;
+				p[0] = (p[0] * sa + (bf >> 12) * da) >> 8;
+				p[1] = (p[1] * sa + (gf >> 12) * da) >> 8;
+				p[2] = (p[2] * sa + (rf >> 12) * da) >> 8;
 			}
 			rf += ri;
 			gf += gi;
 			bf += bi;
+			af += ai;
 			screen += 240*3;
 		}
 	}
@@ -196,10 +216,15 @@ void gfxFillRoundRect(int x1, int y1, int x2, int y2, int radius,u32 b_col,u32 f
 	}
 }
 //---------------------------------------------------------------------------
-void gfxRect(int x1, int y1, int x2, int y2, char r, char g, char b, u8* screen)
+void gfxRect(int x1, int y1, int x2, int y2, u32 col, u8* screen)
 {
 	int X1,X2,Y1,Y2,i;
-	u8 *p,*p1;
+	u8 *p,*p1,r,g,b,a;
+	
+	a = (u8)(col >> 24);
+	r = (u8)(col >> 16);
+	g = (u8)(col >> 8);
+	b = (u8)col;
 	
 	if (x1<x2){ 
 		X1=x1;
@@ -236,10 +261,16 @@ void gfxRect(int x1, int y1, int x2, int y2, char r, char g, char b, u8* screen)
 	}	
 }
 //---------------------------------------------------------------------------
-void gfxFillRect(int x1, int y1, int x2, int y2, char r, char g, char b, u8* screen)
+void gfxFillRect(int x1, int y1, int x2, int y2, u32 col, u8* screen)
 {
 	int X1,X2,Y1,Y2,i,j;
-
+	u8 r,g,b,ad,as;
+	
+	ad = (u8)(col >> 24);
+	as = 255-ad;
+	r = (u8)(col >> 16);
+	g = (u8)(col >> 8);
+	b = (u8)col;
 	if (x1<x2){ 
 		X1=x1;
 		X2=x2;
@@ -261,9 +292,9 @@ void gfxFillRect(int x1, int y1, int x2, int y2, char r, char g, char b, u8* scr
 	for(i=X1;i<=X2;i++){
 		u8 *p1 = screen;
 		for(j=Y1;j<=Y2;j++,p1-=3){
-			p1[0]=b;
-			p1[1]=g;
-			p1[2]=r;
+			p1[0]=(p1[0] * as + b*ad) >> 8;
+			p1[1]=(p1[1] * as + g*ad) >> 8;
+			p1[2]=(p1[2] * as + r*ad) >> 8;
 		}
 		screen += 240*3;
 	}

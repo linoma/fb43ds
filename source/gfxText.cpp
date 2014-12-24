@@ -85,6 +85,6 @@ int gfxGetTextExtent(font_s* f,const char *str, LPSIZE psz)
 	if(mdx>dx)
 		dx = mdx;
 	psz->cx = dx;
-	psz->cy = f->height;
+	psz->cy = dy + f->height;
 	return 0;
 }

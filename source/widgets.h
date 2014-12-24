@@ -36,7 +36,9 @@ public:
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
 	int set_Parent(CBaseWindow *w){parent = w;return 0;};
 	CBaseWindow *get_Parent(){return parent;};
-	virtual int Invalidate();	
+	virtual int Invalidate();
+	virtual int set_Pos(int x, int y);
+	int get_WindowRect(LPRECT prc){*prc = *(&sz);};
 protected:
 	virtual int isInvalidate();
 	CBaseWindow *get_Desktop();
@@ -111,7 +113,7 @@ protected:
 //---------------------------------------------------------------------------
 class CLabel : public CWindow{	
 public:
-	CLabel();
+	CLabel(char *c);
 	virtual ~CLabel(){};
 	int draw(u8 *screen);
 };

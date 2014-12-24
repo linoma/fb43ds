@@ -36,10 +36,24 @@ extern "C" int widgets_touch_events(touchPosition *p)
 //---------------------------------------------------------------------------
 CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 {
-	bkcolor = 0xFFd3d8e8;
+	bkcolor = 0xFFFFFFFF;//0xFFd3d8e8
+	CContainerWindow *c = new CStatusBar();	
+	c->create(0,0,sz.right,20,2);	
+	add(c);
+	CWindow *w = new CLabel("fb43ds");
+	w->create(0,0,50,10,3);
+	c->add(w);
 }
 //---------------------------------------------------------------------------
 int CTopDesktop::draw(u8 *screen)
+{
+	CBaseWindow::draw(screen);
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
+		(*win)->draw(screen);
+	return 0;	
+}
+//---------------------------------------------------------------------------
+int CBottomDesktop::draw(u8 *screen)
 {
 	if(!isInvalidate())
 		gfxGradientFillRect(&sz,0,1,0xFFFFFFFF,bkcolor,screen);
@@ -50,5 +64,9 @@ int CTopDesktop::draw(u8 *screen)
 //---------------------------------------------------------------------------
 CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
 {
-	bkcolor = 0xFF3a5795;
+	//bkcolor = 0xFF3a5795;
+	bkcolor=0xFFd3d8e8;
+	CContainerWindow *c = new CStatusBar();	
+	c->create(0,sz.bottom-14,sz.right,15,2);	
+	add(c);
 }

@@ -16,6 +16,7 @@ class CBottomDesktop : public CDesktop{
 public:
 	CBottomDesktop();
 	virtual ~CBottomDesktop(){};
+	virtual int draw(u8 *screen);
 };
 
 int gui_init();

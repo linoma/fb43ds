@@ -149,16 +149,11 @@ int CBaseWindow::isInvalidate()
 //---------------------------------------------------------------------------
 int CBaseWindow::draw(u8 *screen)
 {
-	u8 r,g,b;
-	
 	if(isInvalidate())
 		return -1;
 	if((bkcolor >> 24) == 0)
 		return 0;
-	r = (u8)(bkcolor >> 16);
-	g = (u8)(bkcolor >> 8);
-	b = (u8)bkcolor;
-	gfxFillRect(sz.left,sz.top,sz.right,sz.bottom,r,g,b,screen);
+	gfxFillRect(sz.left,sz.top,sz.right,sz.bottom,bkcolor,screen);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -178,21 +173,33 @@ int CBaseWindow::set_TextColor(u32 c)
 //---------------------------------------------------------------------------
 int CBaseWindow::onTouchEvent(touchPosition *p)
 {
-	return 0;
+	return -1;
 }
 //---------------------------------------------------------------------------
 int CBaseWindow:: onKeysPressEvent(u32 press)
 {
-	return 0;
+	return -1;
 }
 //---------------------------------------------------------------------------
 int CBaseWindow:: onKeysUpEvent(u32 press)
 {
-	return 0;
+	return -1;
 }
 //---------------------------------------------------------------------------
 int CBaseWindow::onActivate(int v)
 {
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::set_Pos(int x,int y)
+{
+	sz.right -= sz.left;
+	sz.bottom -= sz.top;
+	sz.left = x;
+	sz.top = y;
+	sz.right += x;
+	sz.bottom += y;
 	Invalidate();
 	return 0;
 }
@@ -253,8 +260,14 @@ int CContainerWindow::Invalidate()
 //---------------------------------------------------------------------------
 int CContainerWindow::add(CBaseWindow *w)
 {
+	RECT rc;
+	
+	if(!w)
+		return -1;
+	w->get_WindowRect(&rc);
 	wins.push_back(w);
 	w->set_Parent(this);
+	w->set_Pos(sz.left+rc.left,sz.top+rc.top);
 	Invalidate();
 	return 0;
 }
@@ -378,7 +391,6 @@ int CWindow::draw(u8 *screen)
 int CWindow::onTouchEvent(touchPosition *p)
 {
 	u32 s = status;
-		
 	status &= ~1;
 	if(p->px < sz.left)
 		return -1;
@@ -413,7 +425,7 @@ int CWindow::set_Text(char *s)
 	return 0;
 }
 //---------------------------------------------------------------------------
-CLabel::CLabel() : CWindow()
+CLabel::CLabel(char *c) : CWindow()
 {
 	bkcolor &= ~0xFF000000;
 }
@@ -451,7 +463,7 @@ int CButton::onKeysPressEvent(u32 press)
 //---------------------------------------------------------------------------
 CStatusBar::CStatusBar() : CContainerWindow()
 {
-	bkcolor = 0xFF0000FF;
+	bkcolor = 0xFF0000a0;
 }
 //---------------------------------------------------------------------------
 CStatusBar::~CStatusBar()
@@ -460,7 +472,8 @@ CStatusBar::~CStatusBar()
 //---------------------------------------------------------------------------
 int CStatusBar::draw(u8 *screen)
 {
-	CBaseWindow::draw(screen);
+	//CBaseWindow::draw(screen);
+	gfxGradientFillRect(&sz,0,1,0xFF3a5795,bkcolor,screen);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -493,7 +506,7 @@ int CEditText::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 int CEditText::draw(u8 *screen)
 {
 	CBaseWindow::draw(screen);
-	gfxRect(sz.left,sz.top,sz.right,sz.bottom,0xa0,0xa0,0xa0,screen);
+	gfxRect(sz.left,sz.top,sz.right,sz.bottom,0xffa0a0a0,screen);
 	return 0;
 }
 //---------------------------------------------------------------------------
