@@ -8,6 +8,7 @@
 extern u32* gxCmdBuf;
 u32* gpuOut = (u32*)0x1F119400;
 u32* gpuDOut = (u32*)0x1F370800;
+u8 *linear_buffer;
 
 int (*pfn_State)();
 extern int widgets_draws();
@@ -17,8 +18,6 @@ extern int widgets_touch_events(touchPosition *p);
 int main(int argc, char** argv)
 {
 	touchPosition lastTouch;
-	char *t,s[50];
-	u32 sz,i;
 	
 	srvInit();	
 	aptInit();
@@ -27,7 +26,7 @@ int main(int argc, char** argv)
 	GPU_Init(NULL);
 	gfxSet3D(false);
 	pfn_State = fb_init;
-	
+	linear_buffer= linearAlloc(0x80000);
 	srand(svcGetSystemTick());
 	while(aptMainLoop()){
 		hidScanInput();		

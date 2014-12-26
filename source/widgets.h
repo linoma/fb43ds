@@ -38,7 +38,7 @@ public:
 	CBaseWindow *get_Parent(){return parent;};
 	virtual int Invalidate();
 	virtual int set_Pos(int x, int y);
-	int get_WindowRect(LPRECT prc){*prc = *(&sz);};
+	int get_WindowRect(LPRECT prc){*prc = *(&sz);return 0;};
 protected:
 	virtual int isInvalidate();
 	CBaseWindow *get_Desktop();

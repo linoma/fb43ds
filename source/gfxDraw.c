@@ -3,7 +3,7 @@
 //---------------------------------------------------------------------------
 void gfxPixel(int x, int y, char r, char g, char b, u8* screen)
 {
-	screen += (240-y+x*240)*3;
+	screen += (239-y+x*240)*3;
 	screen[0]=b;
 	screen[1]=g;
 	screen[2]=r;
