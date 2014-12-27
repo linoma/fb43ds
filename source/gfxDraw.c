@@ -62,7 +62,7 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 		ai /= i;
 	}
 	
-	screen += (240 - Y1 + X1 * 240) * 3;
+	screen += (239 - Y1 + X1 * 240) * 3;
 	
 	rf = rs << 12;
 	gf = gs << 12;
@@ -144,7 +144,7 @@ void gfxFillRoundRect(int x1, int y1, int x2, int y2, int radius,u32 b_col,u32 f
 	r2 = radius*radius;
 	xe = X2-X1;
 	ye = Y2-Y1;
-	screen += (240 - Y1 + X1 * 240) * 3;
+	screen += (239 - Y1 + X1 * 240) * 3;
 	for(x=0,i=X1;i<=X2;i++,x++){
 		u8 *p1 = screen;
 		for(y=0;y<=radius;p1-=3,y++){
@@ -243,16 +243,16 @@ void gfxRect(int x1, int y1, int x2, int y2, u32 col, u8* screen)
 		Y1=y2;
 		Y2=y1;
 	}
-	p = screen + (240 - Y1 + X1 * 240)*3;
-	p1 = screen + (240 - Y1 + X2 * 240)*3;
+	p = screen + (239 - Y1 + X1 * 240)*3;
+	p1 = screen + (239 - Y1 + X2 * 240)*3;
 	for(i=Y1;i<=Y2;i++){
 		p[0] = b;p[1]=g;p[2]=r;
 		p -= 3;
 		p1[0] = b;p1[1]=g;p1[2]=r;
 		p1 -= 3;		
 	}
-	p = screen + (240 - Y1 + X1 * 240)*3;
-	p1 = screen + (240 - Y2 + X1 * 240)*3;
+	p = screen + (239 - Y1 + X1 * 240)*3;
+	p1 = screen + (239 - Y2 + X1 * 240)*3;
 	for(i=X1;i<=X2;i++){
 		p[0] = b;p[1]=g;p[2]=r;
 		p += 240*3;
@@ -288,7 +288,7 @@ void gfxFillRect(int x1, int y1, int x2, int y2, u32 col, u8* screen)
 		Y1=y2;
 		Y2=y1;
 	}
-	screen += (240 - Y1 + X1 * 240)*3;
+	screen += (239 - Y1 + X1 * 240)*3;
 	for(i=X1;i<=X2;i++){
 		u8 *p1 = screen;
 		for(j=Y1;j<=Y2;j++,p1-=3){

@@ -1,6 +1,8 @@
-/*
- * 32x24 hit data
- */
+#include "keyboard.h"
+#include "keyboard_bin.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define F_1	0x0
 #define F_2	0x0
@@ -66,3 +68,73 @@ const unsigned char keyboard_Hit_Shift[512] = {
 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 };
+
+CKeyboard *keyboard;
+//---------------------------------------------------------------------------
+CKeyboard::CKeyboard() : CImageGif()
+{
+	status = 0;
+}
+//---------------------------------------------------------------------------
+int CKeyboard::init(CDesktop *d)
+{
+	RECT rc;
+	
+	if(load((u8 *)keyboard_bin))
+		return -1;
+	desk = d;
+	desk->get_WindowRect(&rc);
+	pt.x = ((rc.right - rc.left) - width) / 2;
+	pt.y = (rc.bottom - (height/2));
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CKeyboard::show(CBaseWindow *w)
+{
+	status |= 1;
+	win = w;
+	desk->Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CKeyboard::hide()
+{
+	status &= ~1;
+	desk->Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CKeyboard::draw(u8 *dst)
+{
+	if(!(status & 1))
+		return 0;
+	return CImageGif::draw(dst,pt.x,pt.y,256,128,0,(status & 2) ? 128 : 0);
+}
+//---------------------------------------------------------------------------
+int CKeyboard::onTouchEvent(touchPosition *p)
+{
+	int x,y;	
+	u8 c;
+	
+	if(!(status & 1))
+		return -1;
+	x=p->px;
+	y=p->py;
+	if(x < pt.x || y < pt.y || y > (pt.y+128) || x > (pt.x+256))
+		return -2;
+	x = (x-pt.x)>>3;
+	y = (y-pt.y)>>3;
+	if(x < 2 || x > 29 || y > 12)
+		return -3;
+	if(!(status & 2))
+		c = keyboard_Hit[x+(y*32)];
+	else
+		c = keyboard_Hit_Shift[x+(y*32)];
+	if(c == CAP)
+		status |= 2;		
+	else if(c == SHF)
+		status ^= 2;
+	else if(win != NULL)
+		win->onCharEvent(c);
+	return 0;
+}

@@ -9,8 +9,6 @@
 #include "gfxtext.h"
 #include "gui.h"
 
-using namespace std;
-
 //---------------------------------------------------------------------------
 CTimer::CTimer(LPDEFFUNC f,u64 i,u32 p)
 {
@@ -63,7 +61,7 @@ int CCursor::Show(CBaseWindow *v,int x,int y)
 	win = v;
 	pos.x = x;
 	pos.y = y;
-	status |= 1|4;
+	status |= 1|4;	
 	draw();
 	return 0;
 }
@@ -96,7 +94,7 @@ int CCursor::draw()
 	b = s->get_Buffer();
 	if(b == NULL)
 		return -2;
-	b += (240-pos.y + pos.x*240)*3;
+	b += (239-pos.y + pos.x*240)*3;
 	for(y=0;y<sz.cy;y++,b -= 3){
 		b[0] ^= 0xFF;
 		b[1] ^= 0xFF;
@@ -122,6 +120,7 @@ CBaseWindow::CBaseWindow()
 	bkcolor = 0xFF000000;
 	color = 0xFFFFFFFF;
 	scr=GFX_TOP;
+	text = NULL;
 	Invalidate();	
 }
 //---------------------------------------------------------------------------
@@ -130,11 +129,13 @@ CBaseWindow::CBaseWindow(gfxScreen_t s)
 	bkcolor = 0xFF000000;
 	color = 0xFFFFFFFF;
 	scr = s;
+	text = NULL;
 	Invalidate();
 }
 //---------------------------------------------------------------------------
 CBaseWindow::~CBaseWindow()
 {
+	destroy();
 }
 //---------------------------------------------------------------------------
 int CBaseWindow::isInvalidate()
@@ -152,7 +153,7 @@ int CBaseWindow::draw(u8 *screen)
 	if(isInvalidate())
 		return -1;
 	if((bkcolor >> 24) == 0)
-		return 0;
+		return -2;
 	gfxFillRect(sz.left,sz.top,sz.right,sz.bottom,bkcolor,screen);
 	return 0;
 }
@@ -234,6 +235,39 @@ int CBaseWindow::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 	return 0;
 }
 //---------------------------------------------------------------------------
+int CBaseWindow::onCharEvent(u8 c)
+{
+	return -1;
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::set_Text(char *s)
+{
+	int len;
+	
+	if(text)
+		free(text);
+	text = NULL;
+	if(s){
+		len = strlen(s);
+		text = (char *)malloc(len+1);
+		if(text){
+			memset(text,0,len+1);
+			strcpy(text,s);
+		}
+	}
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::destroy()
+{	
+	if(text){
+		free(text);
+		text=NULL;
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------
 CContainerWindow::CContainerWindow() : CBaseWindow()
 {
 }
@@ -244,10 +278,13 @@ CContainerWindow::CContainerWindow(gfxScreen_t s) : CBaseWindow(s)
 //---------------------------------------------------------------------------
 int CContainerWindow::draw(u8 *screen)
 {
-	CBaseWindow::draw(screen);
-	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
+	int res;
+	
+	res = CBaseWindow::draw(screen);
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
 		(*win)->draw(screen);
-	return 0;
+	}
+	return res;
 }
 //---------------------------------------------------------------------------
 int CContainerWindow::Invalidate()
@@ -299,6 +336,8 @@ int CDesktop::IncrementTimers()
 //---------------------------------------------------------------------------
 int CDesktop::onTouchEvent(touchPosition *p)
 {
+	if(!keyboard->onTouchEvent(p))
+		return 0;
 	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
 		if(!(*win)->onTouchEvent(p)){
 			onActivateWindow(*win);
@@ -352,11 +391,16 @@ int CDesktop::ShowCursor(CBaseWindow *w,int x,int y)
 		timers.push_back(cursor);
 	}
 	cursor->Show(w,x,y);
+	keyboard->show(w);
 	return 0;
 }
 //---------------------------------------------------------------------------	
 int CDesktop::HideCursor()
 {
+	if(cursor != NULL)
+		cursor->Hide();
+	if(keyboard != NULL)
+		keyboard->hide();
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -364,7 +408,6 @@ CWindow::CWindow() : CBaseWindow()
 {
 	color = 0xFF000000;
 	bkcolor = 0xFFFFFFFF;
-	text = NULL;
 	cb = NULL;	
 }
 //---------------------------------------------------------------------------
@@ -373,19 +416,9 @@ CWindow::~CWindow()
 	destroy();
 }
 //---------------------------------------------------------------------------
-int CWindow::destroy()
-{
-	if(text){
-		free(text);
-		text = NULL;
-	}
-	return 0;
-}
-//---------------------------------------------------------------------------
 int CWindow::draw(u8 *screen)
 {
-	CBaseWindow::draw(screen);
-	return 0;
+	return CBaseWindow::draw(screen);
 }
 //---------------------------------------------------------------------------
 int CWindow::onTouchEvent(touchPosition *p)
@@ -409,30 +442,20 @@ int CWindow::onTouchEvent(touchPosition *p)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CWindow::set_Text(char *s)
-{
-	if(text != NULL)
-		free(text);
-	text=NULL;
-	if(s){
-		text = (char *)malloc(strlen(s)+1);
-		if(text == NULL)
-			return -1;
-		text[0]=0;
-		strcpy(text,s);
-	}
-	Invalidate();
-	return 0;
-}
-//---------------------------------------------------------------------------
 CLabel::CLabel(char *c) : CWindow()
 {
 	bkcolor &= ~0xFF000000;
+	set_Text(c);
 }
 //---------------------------------------------------------------------------
 int CLabel::draw(u8 *screen)
 {
-	CWindow::draw(screen);
+	if(!text || !text[0])
+		return 0;
+	int res = CWindow::draw(screen);
+	if(res)
+		return res;
+	drawString(screen,NULL,text,sz.left,sz.top,400,240);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -448,8 +471,7 @@ CButton::~CButton()
 //---------------------------------------------------------------------------
 int CButton::draw(u8 *screen)
 {
-	CBaseWindow::draw(screen);	
-	return 0;
+	return CBaseWindow::draw(screen);	
 }
 //---------------------------------------------------------------------------
 int CButton::onKeysPressEvent(u32 press)
@@ -505,9 +527,13 @@ int CEditText::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 //---------------------------------------------------------------------------
 int CEditText::draw(u8 *screen)
 {
-	CBaseWindow::draw(screen);
-	gfxRect(sz.left,sz.top,sz.right,sz.bottom,0xffa0a0a0,screen);
-	return 0;
+	int res = CBaseWindow::draw(screen);
+	if(!res){
+		gfxRect(sz.left,sz.top,sz.right,sz.bottom,0xffa0a0a0,screen);
+		if(text)
+			drawString(screen,NULL,text,sz.left,sz.top,320,240);
+	}
+	return res;
 }
 //---------------------------------------------------------------------------
 int CEditText::HideCursor()
@@ -531,11 +557,27 @@ int CEditText::ShowCursor(int x,int y)
 int CEditText::onActivate(int v)
 {
 	CWindow::onActivate(v);
-	if(v){
-		ShowCursor(sz.left+10,sz.top);
-	}
-	else{
+	if(v)
+		ShowCursor(sz.left+10,sz.top+2);
+	else
 		HideCursor();
-	}
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CEditText::onCharEvent(u8 c)
+{
+	char b[2],*s;
+	int len;
+	
+	len = text ? strlen(text) : 0;
+	s = (char *)malloc(len + 10);
+	memset(s,0,len+10);
+	if(text != NULL)
+		strcpy(s,text);
+	b[0] = c;
+	b[1] = 0;
+	strcat(s,b);
+	set_Text(s);
+	free(s);
 	return 0;
 }

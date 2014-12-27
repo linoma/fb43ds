@@ -36,13 +36,13 @@ extern "C" int fb_init()
 	b->create(105,50,110,20,3);	
 	bottom->add(b);
 	
-	b = new CEditText();
+/*	b = new CEditText();
 	b->create(105,80,110,20,4);	
 	bottom->add(b);
 	
 	b = new CButton();
 	b->create(110,120,100,15,5);
-	bottom->add(b);
+	bottom->add(b);*/
 		
 	pfn_State = fb_login;
 	return 0;

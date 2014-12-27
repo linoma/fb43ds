@@ -1,10 +1,10 @@
 #include <vector>
+#include <string>
 #include <3ds.h>
 #include "types.h"
 
 #ifndef __WIDGETSH__
 #define __WIDGETSH__
-
 
 //---------------------------------------------------------------------------
 class CTimer {
@@ -32,6 +32,7 @@ public:
 	virtual int onTouchEvent(touchPosition *p);
 	virtual int onKeysPressEvent(u32 press);
 	virtual int onKeysUpEvent(u32 press);
+	virtual int onCharEvent(u8 c);
 	virtual int onActivate(int v);	
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
 	int set_Parent(CBaseWindow *w){parent = w;return 0;};
@@ -39,14 +40,17 @@ public:
 	virtual int Invalidate();
 	virtual int set_Pos(int x, int y);
 	int get_WindowRect(LPRECT prc){*prc = *(&sz);return 0;};
+	int set_Text(char *s);	
 protected:
 	virtual int isInvalidate();
+	virtual int destroy();
 	CBaseWindow *get_Desktop();
 	
 	u32 color,bkcolor,status,ID,redraw;
 	gfxScreen_t scr;
 	RECT sz;
 	CBaseWindow *parent;
+	char *text;
 };
 
 class CContainerWindow : public CBaseWindow{
@@ -101,13 +105,10 @@ class CWindow : public CBaseWindow {
 public:	
 	CWindow();
 	virtual ~CWindow();
-	virtual int destroy();
 	virtual int draw(u8 *screen);
-	int set_Text(char *s);
 	virtual int onTouchEvent(touchPosition *p);
 protected:
 	u32 styles;
-	char *text;
 	int (*cb)(CWindow *);
 };
 //---------------------------------------------------------------------------
@@ -159,9 +160,16 @@ public:
 	int draw(u8 *screen);
 	int onActivate(int v);
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
+	virtual int onCharEvent(u8 c);
 protected:
 	int HideCursor();
 	int ShowCursor(int x,int y);
+};
+//---------------------------------------------------------------------------
+class CEditBox : public CEditText
+{
+public:
+	CEditBox();
 };
 //---------------------------------------------------------------------------
 class CListBox : public CWindow{
@@ -176,6 +184,5 @@ public:
 	CToolBar();
 	virtual ~CToolBar(){};
 };
-
 
 #endif

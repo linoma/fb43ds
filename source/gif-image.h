@@ -17,7 +17,4 @@ protected:
 	int bk_idx;
 };
 
-int load_gif(u8 *out,const u8 *src);
-int draw_gif(u8 *o,int x,int y,int stride,const u8 *i);
-
 #endif

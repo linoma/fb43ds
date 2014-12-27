@@ -1,4 +1,5 @@
 #include "types.h"
+#include "types.h"
 #include "font.h"
 
 #ifndef __GFXTEXTH__
