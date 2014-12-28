@@ -13,10 +13,8 @@ int gui_init()
 {
 	top = new CTopDesktop();
 	bottom = new CBottomDesktop();
-
-	keyboard = new CKeyboard();
-	keyboard->init(bottom);
-	
+	top->ShowDialog(bottom);
+	bottom->ShowDialog(bottom);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -43,35 +41,28 @@ CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 {
 	bkcolor = 0xFFFFFFFF;//0xFFd3d8e8
 	CContainerWindow *c = new CStatusBar();	
-	c->create(0,0,sz.right,20,2);	
+	c->create(0,0,rcWin.right,20,2);	
 	add(c);
-	CWindow *w = new CLabel("fb43ds");
-	w->create(0,0,50,10,3);
+	CBaseWindow *w = new CLabel("fb43ds");
+	w->create(2,2,50,10,3);
 	c->add(w);
 }
 //---------------------------------------------------------------------------
-int CTopDesktop::draw(u8 *screen)
+int CBottomDesktop::EraseBkgnd(u8 *screen)
 {
-	CBaseWindow::draw(screen);
-	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
-		(*win)->draw(screen);
-	return 0;	
+	if(!isInvalidate()){
+		gfxGradientFillRect(&rcWin,0,1,0xFFFFFFFF,bkcolor,screen);
+		return 0;
+	}
+	return -1;
 }
 //---------------------------------------------------------------------------
 int CBottomDesktop::draw(u8 *screen)
 {
-	int i = 0;
-	if(!isInvalidate()){
-		gfxGradientFillRect(&sz,0,1,0xFFFFFFFF,bkcolor,screen);
-		i = 1;
-	}
-	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
-		if(!(*win)->draw(screen))
-			i = 1;
-	}
-	if(i)
+	int i = CDesktop::draw(screen);
+	if(!i && keyboard)
 		keyboard->draw(screen);
-	return 0;	
+	return i;	
 }
 //---------------------------------------------------------------------------
 CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
@@ -79,6 +70,13 @@ CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
 	//bkcolor = 0xFF3a5795;
 	bkcolor=0xFFd3d8e8;
 	CContainerWindow *c = new CStatusBar();	
-	c->create(0,sz.bottom-14,sz.right,14,2);	
+	c->create(0,rcWin.bottom-14,rcWin.right,14,2);	
 	add(c);
+}
+//---------------------------------------------------------------------------
+int CBottomDesktop::onTouchEvent(touchPosition *p)
+{
+	if(keyboard && !keyboard->onTouchEvent(p))
+		return 0;
+	return CDesktop::onTouchEvent(p);
 }

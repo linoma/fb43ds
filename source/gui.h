@@ -10,14 +10,16 @@ class CTopDesktop : public CDesktop{
 public:
 	CTopDesktop();
 	virtual ~CTopDesktop(){};
-	virtual int draw(u8 *screen);
 };
 
 class CBottomDesktop : public CDesktop{
 public:
 	CBottomDesktop();
 	virtual ~CBottomDesktop(){};
-	virtual int draw(u8 *screen);	
+	virtual int draw(u8 *screen);
+	int onTouchEvent(touchPosition *p);
+protected:
+	int EraseBkgnd(u8 *screen);
 };
 
 int gui_init();

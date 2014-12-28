@@ -7,7 +7,7 @@
 static u32 color = 0xFFFFFFFF;
 //---------------------------------------------------------------------------
 static int drawCharacter(u8* fb, font_s* f, char c, s16 x, s16 y, u16 w, u16 h)
-{
+{	
 	charDesc_s* cd=&f->desc[(int)c];
 	if(!cd->data)
 		return 0;
@@ -26,8 +26,7 @@ static int drawCharacter(u8* fb, font_s* f, char c, s16 x, s16 y, u16 w, u16 h)
 	else if(y+ch>h)
 		ch=h-y;
 	fb+=(x*h+cy)*3;
-	u8 r=f->color[0], g=f->color[1], b=f->color[2];
-	r = g = b = 0;
+	u8 r=color>>16, g=color>>8, b=color;
 	for(i=0;i<cd->w;i++){
 		charData+=cyo;
 		for(j=0;j<ch;j++){
@@ -57,11 +56,16 @@ void drawString(u8* fb, font_s* f, char* str, s16 x, s16 y, u16 w, u16 h)
 	length = strlen(str);
 	for(k=dx=dy=0;k<length;k++){
 		dx += drawCharacter(fb,f,str[k],x+dx,y+dy,w,h);
-		if(str[k]=='\n'){
+		if(str[k] == '\n'){
 			dx = 0;
 			dy -= f->height;
 		}
 	}
+}
+//---------------------------------------------------------------------------
+void gfxSetTextColor(u32 col)
+{
+	color = col;
 }
 //---------------------------------------------------------------------------
 void gfxDrawText(gfxScreen_t screen, gfx3dSide_t side, font_s* f, char* str, s16 x, s16 y)

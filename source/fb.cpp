@@ -5,21 +5,19 @@
 #include "gui.h"
 
 extern "C" int (*pfn_State)();
-
 //---------------------------------------------------------------------------
 static int fb_login()
 {
 	return 0;
 }
 //---------------------------------------------------------------------------
-extern "C" int fb_init()
+static int sys_init()
 {
 	CWindow *b;
 	
-	if(gui_init())
-		return -1;
-	
-	/*CContainerWindow *c = new CStatusBar();	
+	keyboard = new CKeyboard();
+	keyboard->init(bottom);
+/*CContainerWindow *c = new CStatusBar();	
 	c->create(0,220,400,20,2);	
 	top->add(c);
 	
@@ -31,20 +29,29 @@ extern "C" int fb_init()
 	c->create(0,220,320,20,3);	
 	bottom->add(c);*/
 	
+	b = new CEditText();
+	b->create(105,20,110,20,3);	
+	bottom->add(b);
 	
 	b = new CEditText();
-	b->create(105,50,110,20,3);	
+	b->create(105,45,110,20,4);	
 	bottom->add(b);
 	
-/*	b = new CEditText();
-	b->create(105,80,110,20,4);	
+	b = new CButton("Connect");
+	b->create(110,70,100,20,5);
 	bottom->add(b);
 	
-	b = new CButton();
-	b->create(110,120,100,15,5);
-	bottom->add(b);*/
-		
+	top->HideDialog();
+	bottom->HideDialog();
 	pfn_State = fb_login;
+	return 0;
+}
+//---------------------------------------------------------------------------
+extern "C" int fb_init()
+{
+	if(gui_init())
+		return -1;	
+	pfn_State = sys_init;
 	return 0;
 }
 //---------------------------------------------------------------------------

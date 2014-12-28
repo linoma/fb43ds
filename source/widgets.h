@@ -39,7 +39,7 @@ public:
 	CBaseWindow *get_Parent(){return parent;};
 	virtual int Invalidate();
 	virtual int set_Pos(int x, int y);
-	int get_WindowRect(LPRECT prc){*prc = *(&sz);return 0;};
+	int get_WindowRect(LPRECT prc);
 	int set_Text(char *s);	
 protected:
 	virtual int isInvalidate();
@@ -48,7 +48,7 @@ protected:
 	
 	u32 color,bkcolor,status,ID,redraw;
 	gfxScreen_t scr;
-	RECT sz;
+	RECT rcWin;
 	CBaseWindow *parent;
 	char *text;
 };
@@ -62,6 +62,7 @@ public:
 	virtual int draw(u8 *screen);
 	virtual int Invalidate();
 protected:
+	virtual int EraseBkgnd(u8 *screen);
 	std::vector<CBaseWindow *>wins;	
 };
 
@@ -86,7 +87,7 @@ class CDesktop : public CContainerWindow {
 public:
 	CDesktop(gfxScreen_t s);
 	virtual ~CDesktop(){};
-	int onTouchEvent(touchPosition *p);
+	virtual int onTouchEvent(touchPosition *p);
 	int onKeysPressEvent(u32 press);
 	int onKeysUpEvent(u32 press);	
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
@@ -94,9 +95,12 @@ public:
 	int ShowCursor(CBaseWindow *w,int x,int y);
 	int HideCursor();
 	u8 *get_Buffer();
+	int ShowDialog(CBaseWindow *w);
+	int HideDialog();
+	virtual int draw(u8 *screen);
 protected:
 	int onActivateWindow(CBaseWindow *win);
-	CBaseWindow *a_win;
+	CBaseWindow *a_win,*dlg_win;
 	CCursor *cursor;
 	std::vector<CTimer *>timers;	
 };
@@ -112,7 +116,7 @@ protected:
 	int (*cb)(CWindow *);
 };
 //---------------------------------------------------------------------------
-class CLabel : public CWindow{	
+class CLabel : public CBaseWindow{	
 public:
 	CLabel(char *c);
 	virtual ~CLabel(){};
@@ -121,9 +125,10 @@ public:
 //---------------------------------------------------------------------------
 class CButton : public CWindow{
 public:
+	CButton(char *c);
 	CButton();
 	virtual ~CButton();
-	int draw(u8 *screen);
+	virtual int draw(u8 *screen);
 	int onKeysPressEvent(u32 press);
 	int set_Accelerator(int v){accel = v;return 0;};
 protected:
