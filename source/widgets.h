@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 #include <3ds.h>
-#include "types.h"
+#include "images.h"
 
 #ifndef __WIDGETSH__
 #define __WIDGETSH__
@@ -63,7 +63,8 @@ public:
 	virtual int Invalidate();
 protected:
 	virtual int EraseBkgnd(u8 *screen);
-	std::vector<CBaseWindow *>wins;	
+	std::vector<CBaseWindow *>wins;
+	u32 bktcolor;
 };
 
 class CCursor : public CTimer {
@@ -98,6 +99,7 @@ public:
 	int ShowDialog(CBaseWindow *w);
 	int HideDialog();
 	virtual int draw(u8 *screen);
+	virtual int Invalidate();
 protected:
 	int onActivateWindow(CBaseWindow *win);
 	CBaseWindow *a_win,*dlg_win;
@@ -110,9 +112,7 @@ public:
 	CWindow();
 	virtual ~CWindow();
 	virtual int draw(u8 *screen);
-	virtual int onTouchEvent(touchPosition *p);
 protected:
-	u32 styles;
 	int (*cb)(CWindow *);
 };
 //---------------------------------------------------------------------------
@@ -123,7 +123,13 @@ public:
 	int draw(u8 *screen);
 };
 //---------------------------------------------------------------------------
-class CButton : public CWindow{
+class CImageWindow : public CWindow, public CImage{
+public:
+	CImageWindow();
+	int draw(u8 *screen);
+};
+//---------------------------------------------------------------------------
+class CButton : public CBaseWindow{
 public:
 	CButton(char *c);
 	CButton();
@@ -149,7 +155,7 @@ public:
 	int draw(u8 *screen);
 };
 //---------------------------------------------------------------------------
-class CScrollBar : public CWindow{
+class CScrollBar : public CBaseWindow{
 public:
 	CScrollBar();
 	virtual ~CScrollBar(){};
@@ -158,7 +164,7 @@ protected:
 	u32 pos,min,max;
 };
 //---------------------------------------------------------------------------
-class CEditText : public CWindow{
+class CEditText : public CBaseWindow{
 public:
 	CEditText();
 	virtual ~CEditText();
@@ -177,7 +183,7 @@ public:
 	CEditBox();
 };
 //---------------------------------------------------------------------------
-class CListBox : public CWindow{
+class CListBox : public CBaseWindow{
 public:
 	CListBox();
 	virtual ~CListBox(){};

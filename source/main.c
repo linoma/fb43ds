@@ -41,7 +41,6 @@ int main(int argc, char** argv)
 		if(pfn_State)
 			pfn_State();			
 		widgets_draws();
-		widgets_draws();
 		gfxFlushBuffers();
 		gfxSwapBuffers();
 		gspWaitForEvent(GSPEVENT_VBlank0, false);

@@ -22,9 +22,22 @@ protected:
 	int EraseBkgnd(u8 *screen);
 };
 
+class CConsoleWindow : public CWindow{
+public:
+	CConsoleWindow();
+	int printf(char *fmt,...);
+};
+
+class CLoaderWindow : public CImageWindow{
+public:
+	CLoaderWindow();
+};
+
 int gui_init();
 int gui_destroy();
 
 extern CDesktop *top,*bottom;
+extern CConsoleWindow *console;
+#define print console->printf
 
 #endif

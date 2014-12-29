@@ -117,8 +117,8 @@ int CCursor::onTimer(u32 param)
 //---------------------------------------------------------------------------
 CBaseWindow::CBaseWindow()
 {
-	bkcolor = 0xFF000000;
-	color = 0xFFFFFFFF;
+	color = 0xFF000000;
+	bkcolor = 0xFFFFFFFF;
 	scr=GFX_TOP;
 	text = NULL;
 	Invalidate();	
@@ -126,8 +126,8 @@ CBaseWindow::CBaseWindow()
 //---------------------------------------------------------------------------
 CBaseWindow::CBaseWindow(gfxScreen_t s)
 {
-	bkcolor = 0xFF000000;
-	color = 0xFFFFFFFF;
+	color = 0xFF000000;
+	bkcolor = 0xFFFFFFFF;
 	scr = s;
 	text = NULL;
 	Invalidate();
@@ -174,7 +174,18 @@ int CBaseWindow::set_TextColor(u32 c)
 //---------------------------------------------------------------------------
 int CBaseWindow::onTouchEvent(touchPosition *p)
 {
-	return -1;
+	status &= ~1;
+	if(p->px < rcWin.left)
+		return -1;
+	if(p->px > rcWin.right)
+		return -2;
+	if(p->py < rcWin.top)
+		return -3;
+	if(p->py > rcWin.bottom)
+		return -4;
+	//we are inside the widget
+	status |= 1;
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CBaseWindow:: onKeysPressEvent(u32 press)
@@ -435,10 +446,20 @@ int CDesktop::ShowDialog(CBaseWindow *w)
 int CDesktop::draw(u8 *screen)
 {
 	int res = CContainerWindow::draw(screen);
-	if(dlg_win == NULL)
+	if(dlg_win == NULL || res)
 		return res;
-	if(!res)
-		gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0x80000000,screen);
+	gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0x80000000,screen);
+	if(dlg_win!=this){
+		dlg_win->draw(screen);
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------	
+int CDesktop::Invalidate()
+{
+	int res = CContainerWindow::Invalidate();
+	if(dlg_win)
+		dlg_win->Invalidate();
 	return res;
 }
 //---------------------------------------------------------------------------
@@ -456,23 +477,14 @@ CWindow::~CWindow()
 //---------------------------------------------------------------------------
 int CWindow::draw(u8 *screen)
 {
-	return CBaseWindow::draw(screen);
-}
-//---------------------------------------------------------------------------
-int CWindow::onTouchEvent(touchPosition *p)
-{
-	status &= ~1;
-	if(p->px < rcWin.left)
-		return -1;
-	if(p->px > rcWin.right)
-		return -2;
-	if(p->py < rcWin.top)
-		return -3;
-	if(p->py > rcWin.bottom)
-		return -4;
-	//we are inside the widget
-	status |= 1;
-	return 0;
+	if(!CBaseWindow::draw(screen)){
+		if(text){
+			gfxSetTextColor(color);
+			gfxDrawText(screen,0,text,&rcWin,0);
+		}
+		return 0;
+	}
+	return -1;
 }
 //---------------------------------------------------------------------------
 CLabel::CLabel(char *c) : CBaseWindow()
@@ -489,18 +501,18 @@ int CLabel::draw(u8 *screen)
 	if(!text || !text[0])
 		return -2;	
 	gfxSetTextColor(color);
-	drawString(screen,NULL,text,rcWin.left,rcWin.top,400,240);
+	gfxDrawText(screen,NULL, text,&rcWin,0);
 	return 0;
 }
 //---------------------------------------------------------------------------
-CButton::CButton(char *c) : CWindow()
+CButton::CButton(char *c) : CBaseWindow()
 {
 	bkcolor = 0xFFDDDDDD;
 	accel = 0;
 	set_Text(c);
 }
 //---------------------------------------------------------------------------
-CButton::CButton() : CWindow()
+CButton::CButton() : CBaseWindow()
 {
 	bkcolor = 0xFFDDDDDD;
 	accel = 0;
@@ -512,8 +524,6 @@ CButton::~CButton()
 //---------------------------------------------------------------------------
 int CButton::draw(u8 *screen)
 {
-	RECT rc;
-	
 	if(isInvalidate())
 		return -1;
 	gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0xff606060,screen);
@@ -521,14 +531,8 @@ int CButton::draw(u8 *screen)
 	gfxFillRect(rcWin.left+2,rcWin.top+2,rcWin.right-2,rcWin.bottom-2,bkcolor,screen);
 	
 		if(text){
-			POINT pt;
-			SIZE sz;
-
-			gfxGetTextExtent(NULL,text,&sz);
-			pt.x = rcWin.left + (((rcWin.right-rcWin.left) - sz.cx) >> 1);
-			pt.y = rcWin.top + (((rcWin.bottom-rcWin.top) - sz.cy) >> 1);
 			gfxSetTextColor(color);
-			drawString(screen,NULL,text,pt.x,pt.y,320,240);
+			gfxDrawText(screen,NULL,text,&rcWin,1);
 		}
 	return 0;
 }
@@ -539,7 +543,7 @@ int CButton::onKeysPressEvent(u32 press)
 		status |= 1;
 		return 0;
 	}
-	return CWindow::onKeysPressEvent(press);
+	return CBaseWindow::onKeysPressEvent(press);
 }
 //---------------------------------------------------------------------------
 CStatusBar::CStatusBar() : CContainerWindow()
@@ -573,7 +577,7 @@ int CMenuBar::draw(u8 *screen)
 	return CBaseWindow::draw(screen);
 }
 //---------------------------------------------------------------------------
-CEditText::CEditText() : CWindow()
+CEditText::CEditText() : CBaseWindow()
 {
 }
 //---------------------------------------------------------------------------
@@ -586,7 +590,7 @@ int CEditText::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 	SIZE sz;
 	
 	gfxGetTextExtent(NULL,"X",&sz);
-	return CWindow::create(x,y,w,sz.cy+4,id);
+	return CBaseWindow::create(x,y,w,sz.cy+4,id);
 }
 //---------------------------------------------------------------------------
 int CEditText::draw(u8 *screen)
@@ -595,7 +599,7 @@ int CEditText::draw(u8 *screen)
 	if(!res){
 		gfxRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0xffa0a0a0,screen);
 		if(text)
-			drawString(screen,NULL,text,rcWin.left,rcWin.top,320,240);
+			gfxDrawText(screen,NULL,text,&rcWin,0);
 	}
 	return res;
 }
@@ -620,7 +624,7 @@ int CEditText::ShowCursor(int x,int y)
 //---------------------------------------------------------------------------
 int CEditText::onActivate(int v)
 {
-	CWindow::onActivate(v);
+	CBaseWindow::onActivate(v);
 	if(v)
 		ShowCursor(rcWin.left+10,rcWin.top+2);
 	else
@@ -643,5 +647,14 @@ int CEditText::onCharEvent(u8 c)
 	strcat(s,b);
 	set_Text(s);
 	free(s);
+	return 0;
+}
+//---------------------------------------------------------------------------
+CImageWindow::CImageWindow() : CWindow(), CImage()
+{
+}
+//---------------------------------------------------------------------------
+int CImageWindow::draw(u8 *screen)
+{
 	return 0;
 }

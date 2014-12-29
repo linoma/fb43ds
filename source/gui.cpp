@@ -3,18 +3,25 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
+#include <stdarg.h>
 #include "widgets.h"
 #include "gfxdraw.h"
 #include "gfxtext.h"
 
 CDesktop *top,*bottom;
+CConsoleWindow *console;
+CLoaderWindow *loader;
 //---------------------------------------------------------------------------
 int gui_init()
 {
 	top = new CTopDesktop();
 	bottom = new CBottomDesktop();
-	top->ShowDialog(bottom);
-	bottom->ShowDialog(bottom);
+	console = new CConsoleWindow();
+	loader = new CLoaderWindow();
+	keyboard = new CKeyboard();
+	top->ShowDialog(loader);
+	console->create(20,20,280,200,-1);
+	bottom->ShowDialog(console);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -25,8 +32,13 @@ int gui_destroy()
 //---------------------------------------------------------------------------
 extern "C" int widgets_draws()
 {
-	top->draw(gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL));
-	bottom->draw(gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, NULL, NULL));
+	u8 *fb;
+	u16 w,h;
+	
+	fb=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &w, &h);
+	top->draw(fb);
+	fb=gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &w, &h);
+	bottom->draw(fb);
 	top->IncrementTimers();
 	bottom->IncrementTimers();
 	return 0;
@@ -79,4 +91,39 @@ int CBottomDesktop::onTouchEvent(touchPosition *p)
 	if(keyboard && !keyboard->onTouchEvent(p))
 		return 0;
 	return CDesktop::onTouchEvent(p);
+}
+//---------------------------------------------------------------------------
+CConsoleWindow::CConsoleWindow() : CWindow()
+{
+	bkcolor=0xff000000;
+	color=0xffffffff;
+}
+//---------------------------------------------------------------------------
+int CConsoleWindow::printf(char *fmt,...)
+{
+	va_list argptr;
+	int cnt,len;
+	char *s;
+
+	len = text ? strlen(text) : 0;
+	s = (char *)malloc(len + 1024);
+	if(!s)
+		return -1;
+	memset(s,0,len+1024);
+	if(text)
+		strcpy(s,text);
+	va_start(argptr, fmt);
+	vsprintf(&s[len],fmt, argptr);
+	va_end(argptr);
+	set_Text(s);
+	free(s);
+	widgets_draws();
+	gfxFlushBuffers();
+	gfxSwapBuffers();
+	gspWaitForEvent(GSPEVENT_VBlank0, false);
+	return 0;
+}
+//---------------------------------------------------------------------------
+CLoaderWindow::CLoaderWindow() : CImageWindow()
+{
 }

@@ -13,9 +13,10 @@ static int fb_login()
 //---------------------------------------------------------------------------
 static int sys_init()
 {
-	CWindow *b;
+	CBaseWindow *b;
+
+	print("loading...");
 	
-	keyboard = new CKeyboard();
 	keyboard->init(bottom);
 /*CContainerWindow *c = new CStatusBar();	
 	c->create(0,220,400,20,2);	
@@ -44,6 +45,7 @@ static int sys_init()
 	top->HideDialog();
 	bottom->HideDialog();
 	pfn_State = fb_login;
+	
 	return 0;
 }
 //---------------------------------------------------------------------------

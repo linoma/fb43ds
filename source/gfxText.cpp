@@ -6,77 +6,84 @@
 
 static u32 color = 0xFFFFFFFF;
 //---------------------------------------------------------------------------
-static int drawCharacter(u8* fb, font_s* f, char c, s16 x, s16 y, u16 w, u16 h)
+static int drawCharacter(u8* fb, font_s* f, char c, s16 x, s16 y)
 {	
-	charDesc_s* cd=&f->desc[(int)c];
+	int i, j;
+	
+	charDesc_s* cd = &f->desc[(int)c];
 	if(!cd->data)
 		return 0;
+	u8* charData = cd->data;
 	x += cd->xo; 
 	y += -cd->yo-cd->h;
-	if(x<0 || x+cd->w>=w || y<-cd->h || y>=h+cd->h)
-		return 0;
-	u8* charData=cd->data;
-	int i, j;
 	s16 cy=y, ch=cd->h, cyo=0;
 	if(y<0){
 		cy=0;
 		cyo=-y;
 		ch=cd->h-cyo;
 	}
-	else if(y+ch>h)
-		ch=h-y;
-	fb+=(x*h+cy)*3;
-	u8 r=color>>16, g=color>>8, b=color;
+	else if(y+ch>240)
+		ch = 240-y;
+	fb += (x*240+cy)*3;
+	u8 r=color >>16, g = color>>8, b = color;
 	for(i=0;i<cd->w;i++){
-		charData+=cyo;
+		charData += cyo;
 		for(j=0;j<ch;j++){
-			u8 v=*(charData++);
+			u8 v = *charData++;
 			if(v){
-				fb[0]=(fb[0]*(0xFF-v)+(b*v))>>8;
-				fb[1]=(fb[1]*(0xFF-v)+(g*v))>>8;
-				fb[2]=(fb[2]*(0xFF-v)+(r*v))>>8;
+				u8 as = 255-v;
+				fb[0] = (fb[0]*as+(b*v))>>8;
+				fb[1] = (fb[1]*as+(g*v))>>8;
+				fb[2] = (fb[2]*as+(r*v))>>8;
 			}
-			fb+=3;
+			fb += 3;
 		}
-		charData+=(cd->h-(cyo+ch));
-		fb+=(h-ch)*3;
+		charData += cd->h - (cyo+ch);
+		fb += (240 - ch) * 3;
 	}
 	return cd->xa;
 }
-//---------------------------------------------------------------------------
-void drawString(u8* fb, font_s* f, char* str, s16 x, s16 y, u16 w, u16 h)
-{
-	int k,dx,dy,length;
-	
-	if(!fb || !str)
-		return;
-	if(!f)
-		f = &fontDefault;
-	y = 239-y;
-	length = strlen(str);
-	for(k=dx=dy=0;k<length;k++){
-		dx += drawCharacter(fb,f,str[k],x+dx,y+dy,w,h);
-		if(str[k] == '\n'){
-			dx = 0;
-			dy -= f->height;
-		}
-	}
-}
+
 //---------------------------------------------------------------------------
 void gfxSetTextColor(u32 col)
 {
 	color = col;
 }
 //---------------------------------------------------------------------------
-void gfxDrawText(gfxScreen_t screen, gfx3dSide_t side, font_s* f, char* str, s16 x, s16 y)
+void gfxDrawText(u8* fb, font_s* f, char* str, LPRECT prc,u32 flags)
 {
-	if(!str)
+	int k,dx,dy,length,x,y;
+	
+	if(!fb || !str || !str[0] || !prc)
 		return;
 	if(!f)
-		f=&fontDefault;
-	u16 fbWidth, fbHeight;
-	u8* fbAdr=gfxGetFramebuffer(screen, side, &fbWidth, &fbHeight);
-	drawString(fbAdr, f, str, y, x, fbHeight, fbWidth);
+		f = &fontDefault;
+	y = prc->top;
+	x = prc->left;
+	length = strlen(str);
+	if(flags & 1){
+		SIZE sz;
+		
+		gfxGetTextExtent(f,str,&sz);
+		k = ((prc->bottom-y) - sz.cy)>>1;
+		y += k;
+		k = ((prc->right-x) - sz.cx)>>1;
+		x += k;
+	}
+	y = 239 - y;
+	for(k=dx=dy=0;k<length;k++){
+		char c = str[k];
+		charDesc_s* cd = &f->desc[(int)c];
+		if(!cd->data)
+			continue;
+		if((x + cd->xa + dx) >= prc->right || c == '\n'){
+			dx = 0;
+			dy -= f->height;
+			if(c == '\n')
+				continue;
+		}
+		dx += drawCharacter(fb,f,c,x+dx,y+dy);
+	}
 }
 //---------------------------------------------------------------------------
 int gfxGetTextExtent(font_s* f,const char *str, LPSIZE psz)
@@ -86,16 +93,16 @@ int gfxGetTextExtent(font_s* f,const char *str, LPSIZE psz)
 	if(!psz)
 		return -2;
 	if(!f)
-		f=&fontDefault;
+		f = &fontDefault;
 	int k; int dx=0, dy=0,mdx=0;
 	int length=strlen(str);
 	for(k=0;k<length;k++){
 		u8 c = str[k];
-		charDesc_s* cd=&f->desc[(int)c];
+		charDesc_s* cd = &f->desc[(int)c];
 		if(!cd->data)
 			continue;
 		dx += cd->xa;
-		if(c=='\n'){
+		if(c == '\n'){
 			if(dx>mdx)
 				mdx = dx;
 			dx = 0;
