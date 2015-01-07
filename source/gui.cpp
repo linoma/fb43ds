@@ -19,8 +19,10 @@ int gui_init()
 	console = new CConsoleWindow();
 	loader = new CLoaderWindow();
 	keyboard = new CKeyboard();
+	loader->create(194,104,32,32,-1);
 	top->ShowDialog(loader);
 	console->create(20,20,280,200,-1);
+	
 	bottom->ShowDialog(console);
 	return 0;
 }
@@ -95,14 +97,14 @@ int CBottomDesktop::onTouchEvent(touchPosition *p)
 //---------------------------------------------------------------------------
 CConsoleWindow::CConsoleWindow() : CWindow()
 {
-	bkcolor=0xff000000;
-	color=0xffffffff;
+	bkcolor = 0xff000000;
+	color = 0xffffffff;
 }
 //---------------------------------------------------------------------------
 int CConsoleWindow::printf(char *fmt,...)
 {
 	va_list argptr;
-	int cnt,len;
+	int len;
 	char *s;
 
 	len = text ? strlen(text) : 0;
@@ -117,13 +119,47 @@ int CConsoleWindow::printf(char *fmt,...)
 	va_end(argptr);
 	set_Text(s);
 	free(s);
-	widgets_draws();
-	gfxFlushBuffers();
-	gfxSwapBuffers();
-	gspWaitForEvent(GSPEVENT_VBlank0, false);
 	return 0;
 }
 //---------------------------------------------------------------------------
-CLoaderWindow::CLoaderWindow() : CImageWindow()
+CLoaderWindow::CLoaderWindow() : CImageWindow(),CAnimation(400000000)
 {
+}
+//---------------------------------------------------------------------------
+int CLoaderWindow::onTimer()
+{
+	frame++;
+	if(pImage != NULL){
+		if(frame*32 >= pImage->get_Height())
+			frame = 0;
+		Invalidate();
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CLoaderWindow::Start()
+{
+	bottom->SetTimer(this);
+	CAnimation::Start();
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CLoaderWindow::Stop()
+{
+	CAnimation::Stop();
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CLoaderWindow::draw(u8 *screen)
+{
+	int x,y,w,h;
+	
+	if(isInvalidate() || pImage == NULL)
+		return -1;
+	CBaseWindow::draw(screen);
+	w = rcWin.right - rcWin.left;
+	h = rcWin.bottom - rcWin.top;
+	return pImage->draw(screen,rcWin.left,rcWin.top,w,h,0,frame*32);
 }

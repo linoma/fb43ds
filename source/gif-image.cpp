@@ -24,7 +24,7 @@ CImageGif::CImageGif() : CImage()
 int CImageGif::destroy()
 {
 	palette = NULL;
-	bk_idx=-1;
+	bk_idx = -1;
 	return CImage::destroy();	
 }
 //---------------------------------------------------------------------------

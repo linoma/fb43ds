@@ -1,9 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <3ds.h>
-#include "gfxtext.h"
-
 
 extern u32* gxCmdBuf;
 u32* gpuOut = (u32*)0x1F119400;
@@ -18,6 +15,7 @@ extern int widgets_touch_events(touchPosition *p);
 int main(int argc, char** argv)
 {
 	touchPosition lastTouch;
+	Result rc;
 	
 	srvInit();	
 	aptInit();
@@ -25,8 +23,8 @@ int main(int argc, char** argv)
 	hidInit(NULL);	
 	GPU_Init(NULL);
 	gfxSet3D(false);
+	linear_buffer = linearAlloc(0x80000);
 	pfn_State = fb_init;
-	linear_buffer= linearAlloc(0x80000);
 	srand(svcGetSystemTick());
 	while(aptMainLoop()){
 		hidScanInput();		
@@ -39,12 +37,14 @@ int main(int argc, char** argv)
 			held &= ~KEY_TOUCH;
 		}
 		if(pfn_State)
-			pfn_State();			
+			pfn_State();
 		widgets_draws();
 		gfxFlushBuffers();
 		gfxSwapBuffers();
 		gspWaitForEvent(GSPEVENT_VBlank0, false);
 	}
+	fb_destroy();
+	httpcExit();
 	hidExit();
 	gfxExit();
 	aptExit();

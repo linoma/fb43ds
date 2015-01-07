@@ -41,14 +41,14 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-fomit-frame-pointer -ffast-math \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
+CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -DNO_FILESYSTEM -DNO_WRITEV -DSINGLE_THREADED
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lctru -lm -lgif
+LIBS	:=  -lcyassl -lctru -lm -lgif
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing

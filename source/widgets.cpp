@@ -10,45 +10,7 @@
 #include "gui.h"
 
 //---------------------------------------------------------------------------
-CTimer::CTimer(LPDEFFUNC f,u64 i,u32 p)
-{
-	elapsed = svcGetSystemTick();
-	interval = i;
-	fnc = f;
-	param=p;
-	status=1;
-}
-//---------------------------------------------------------------------------
-int CTimer::onCounter()
-{
-	if((status & 1) == 0)
-		return -1;
-	elapsed += svcGetSystemTick();
-	if(elapsed >= interval){
-		while(elapsed >=interval)
-			elapsed -= interval;
-		if(fnc != NULL)
-			fnc(param);
-	}
-	return 0;
-}
-//---------------------------------------------------------------------------
-int CTimer::set_Param(u32 p)
-{
-	param=p;
-	return 0;
-}
-//---------------------------------------------------------------------------
-int CTimer::set_Enabled(int v)
-{
-	if(v)
-		status |= 1;
-	else
-		status &= ~1;
-	return 0;
-}
-//---------------------------------------------------------------------------
-CCursor::CCursor(CContainerWindow *w) : CTimer(onTimer,200000,(u32)this)
+CCursor::CCursor(CContainerWindow *w) : CAnimation(200000000)
 {
 	desk = w;
 	win = NULL;
@@ -108,11 +70,6 @@ int CCursor::onTimer()
 	status ^= 4;
 	draw();
 	return 0;
-}
-//---------------------------------------------------------------------------
-int CCursor::onTimer(u32 param)
-{
-	return ((CCursor *)param)->onTimer();
 }
 //---------------------------------------------------------------------------
 CBaseWindow::CBaseWindow()
@@ -400,11 +357,18 @@ int CDesktop::onKeysUpEvent(u32 press)
 	return -1;
 }
 //---------------------------------------------------------------------------	
+int CDesktop::SetTimer(CTimer *p)
+{
+	if(p == NULL)
+		return -1;
+	timers.push_back(p);
+	return 0;
+}
+//---------------------------------------------------------------------------	
 int CDesktop::SetTimer(LPDEFFUNC f,u64 val,u32 p)
 {
-	CTimer *t = new CTimer(f,val,p);
-	timers.push_back(t);
-	return 0;
+	CTimer *t = new CTimer(f,val,p);	
+	return SetTimer(t);
 }
 //---------------------------------------------------------------------------	
 int CDesktop::ShowCursor(CBaseWindow *w,int x,int y)
@@ -431,14 +395,14 @@ int CDesktop::HideCursor()
 //---------------------------------------------------------------------------	
 int CDesktop::HideDialog()
 {
-	dlg_win=NULL;
+	dlg_win = NULL;
 	Invalidate();
 	return 0;
 }
 //---------------------------------------------------------------------------	
 int CDesktop::ShowDialog(CBaseWindow *w)
 {
-	dlg_win=w;
+	dlg_win = w;
 	Invalidate();
 	return 0;
 }
@@ -446,12 +410,11 @@ int CDesktop::ShowDialog(CBaseWindow *w)
 int CDesktop::draw(u8 *screen)
 {
 	int res = CContainerWindow::draw(screen);
-	if(dlg_win == NULL || res)
+	if(dlg_win == NULL)
 		return res;
-	gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0x80000000,screen);
-	if(dlg_win!=this){
-		dlg_win->draw(screen);
-	}
+	if(!res)
+		gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0x80000000,screen);
+	dlg_win->draw(screen);
 	return 0;
 }
 //---------------------------------------------------------------------------	
@@ -528,12 +491,11 @@ int CButton::draw(u8 *screen)
 		return -1;
 	gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0xff606060,screen);
 	gfxFillRect(rcWin.left,rcWin.top,rcWin.right-2,rcWin.bottom-2,0xfff0f0f0,screen);
-	gfxFillRect(rcWin.left+2,rcWin.top+2,rcWin.right-2,rcWin.bottom-2,bkcolor,screen);
-	
-		if(text){
-			gfxSetTextColor(color);
-			gfxDrawText(screen,NULL,text,&rcWin,1);
-		}
+	gfxFillRect(rcWin.left+2,rcWin.top+2,rcWin.right-2,rcWin.bottom-2,bkcolor,screen);	
+	if(text){
+		gfxSetTextColor(color);
+		gfxDrawText(screen,NULL,text,&rcWin,1);
+	}
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -650,11 +612,37 @@ int CEditText::onCharEvent(u8 c)
 	return 0;
 }
 //---------------------------------------------------------------------------
-CImageWindow::CImageWindow() : CWindow(), CImage()
+CImageWindow::CImageWindow() : CBaseWindow()
 {
+	pImage = NULL;
+	bkcolor &= ~0xFF000000;
 }
 //---------------------------------------------------------------------------
 int CImageWindow::draw(u8 *screen)
 {
-	return 0;
+	int x,y,w,h;
+	
+	if(isInvalidate() || pImage == NULL)
+		return -1;
+	CBaseWindow::draw(screen);
+	w = rcWin.right-rcWin.left;
+	h = rcWin.bottom-rcWin.top;
+	return pImage->draw(screen,rcWin.left,rcWin.top,w,h);
+}
+//---------------------------------------------------------------------------
+int CImageWindow::load(u8 *src,int w,int h)
+{
+	CImage *p;
+	
+	if(!src)
+		return -1;
+	p = NULL;
+	if(src[0] == 0x47 && src[1] == 0x49 && src[2] == 0x46 && src[3] == 0x38)
+		p = new CImageGif();
+	if(!p)
+		return -2;
+	if(pImage)
+		delete pImage;
+	pImage = p;
+	return p->load(src,w,h);
 }

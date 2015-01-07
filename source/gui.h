@@ -28,9 +28,14 @@ public:
 	int printf(char *fmt,...);
 };
 
-class CLoaderWindow : public CImageWindow{
+class CLoaderWindow : public CImageWindow, public CAnimation{
 public:
 	CLoaderWindow();
+	virtual ~CLoaderWindow(){};
+	int onTimer();
+	int Start();
+	int Stop();
+	int draw(u8 *screen);
 };
 
 int gui_init();
@@ -38,6 +43,7 @@ int gui_destroy();
 
 extern CDesktop *top,*bottom;
 extern CConsoleWindow *console;
+extern CLoaderWindow *loader;
 #define print console->printf
 
 #endif

@@ -6,20 +6,6 @@
 #ifndef __WIDGETSH__
 #define __WIDGETSH__
 
-//---------------------------------------------------------------------------
-class CTimer {
-public:
-	CTimer(LPDEFFUNC f,u64 i,u32 p);
-	virtual ~CTimer(){};
-	int onCounter();
-	int set_Param(u32 p);
-	int set_Enabled(int v);
-protected:
-	u64 elapsed,interval;
-	LPDEFFUNC fnc;
-	u32 param,status;
-};
-
 class CBaseWindow {
 public:
 	CBaseWindow();
@@ -67,7 +53,7 @@ protected:
 	u32 bktcolor;
 };
 
-class CCursor : public CTimer {
+class CCursor : public CAnimation {
 public:
 	CCursor(CContainerWindow *w);
 	virtual ~CCursor(){};
@@ -77,7 +63,6 @@ public:
 	int set_Pos(int x,int y);
 protected:
 	int draw();
-	static int onTimer(u32 param);
 	CBaseWindow *win;
 	CContainerWindow *desk;
 	POINT pos;
@@ -92,6 +77,7 @@ public:
 	int onKeysPressEvent(u32 press);
 	int onKeysUpEvent(u32 press);	
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
+	int SetTimer(CTimer *p);
 	int IncrementTimers();
 	int ShowCursor(CBaseWindow *w,int x,int y);
 	int HideCursor();
@@ -123,10 +109,13 @@ public:
 	int draw(u8 *screen);
 };
 //---------------------------------------------------------------------------
-class CImageWindow : public CWindow, public CImage{
+class CImageWindow : public CBaseWindow{
 public:
 	CImageWindow();
-	int draw(u8 *screen);
+	virtual int draw(u8 *screen);
+	virtual int load(u8 *src,int w=-1,int h=-1);
+protected:
+	CImage *pImage;
 };
 //---------------------------------------------------------------------------
 class CButton : public CBaseWindow{

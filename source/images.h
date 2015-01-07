@@ -5,6 +5,33 @@
 #ifndef __IMAGESH__
 #define __IMAGESH__
 
+//---------------------------------------------------------------------------
+class CTimer {
+public:
+	CTimer(LPDEFFUNC f,u64 i,u32 p);
+	virtual ~CTimer(){};
+	int onCounter();
+	int set_Param(u32 p);
+	int set_Enabled(int v);
+protected:
+	u64 elapsed,interval;
+	LPDEFFUNC fnc;
+	u32 param,status;
+};
+
+class CAnimation : public CTimer{
+public:
+	CAnimation();
+	CAnimation(u64 v);
+	virtual ~CAnimation(){};
+	virtual int Start();
+	virtual int Stop();
+protected:
+	virtual int onTimer()=0;
+	static int onTimer(u32 param);
+	int frame;
+};
+
 class CImage{
 public:
 	CImage();
@@ -15,10 +42,11 @@ public:
 	virtual int get_pixel(u32 *ret,int f=0,int flags=1);
 	int get_Width(){return width;};
 	int get_Height(){return height;};
+	void set_Alpha(int v){alpha=v;};
 protected:
 	virtual int destroy();
 	u8 *buf,*bd;
-	int width,height,format;
+	int width,height,format,alpha;
 };
 
 #endif
