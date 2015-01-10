@@ -78,6 +78,7 @@ CBaseWindow::CBaseWindow()
 	bkcolor = 0xFFFFFFFF;
 	scr=GFX_TOP;
 	text = NULL;
+	font=NULL;
 	Invalidate();	
 }
 //---------------------------------------------------------------------------
@@ -87,6 +88,7 @@ CBaseWindow::CBaseWindow(gfxScreen_t s)
 	bkcolor = 0xFFFFFFFF;
 	scr = s;
 	text = NULL;
+	font = NULL;
 	Invalidate();
 }
 //---------------------------------------------------------------------------

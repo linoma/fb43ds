@@ -2,6 +2,7 @@
 #include <string>
 #include <3ds.h>
 #include "images.h"
+#include "font.h"
 
 #ifndef __WIDGETSH__
 #define __WIDGETSH__
@@ -37,6 +38,7 @@ protected:
 	RECT rcWin;
 	CBaseWindow *parent;
 	char *text;
+	font_s *font;
 };
 
 class CContainerWindow : public CBaseWindow{

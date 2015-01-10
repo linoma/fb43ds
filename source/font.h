@@ -1,7 +1,12 @@
 #ifndef FONT_H
 #define FONT_H
 
-typedef struct {char c; int x, y, w, h, xo, yo, xa; u8* data;}charDesc_s;
+typedef struct {
+	char c; 
+	int x, y, w, h, xo, yo, xa; 
+	u8* data;
+}charDesc_s;
+
 typedef struct
 {
 	u8* data;
@@ -12,7 +17,6 @@ typedef struct
 
 extern u8 font1Data[];
 extern charDesc_s font1Desc[];
-
 extern font_s fontDefault;
 
 #endif

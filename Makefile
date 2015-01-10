@@ -41,7 +41,7 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-fomit-frame-pointer -ffast-math \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -DNO_FILESYSTEM -DNO_WRITEV -DSINGLE_THREADED
+CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -DNO_FILESYSTEM -DNO_WRITEV -DSINGLE_THREADED -DUSE_CYASSL
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 

@@ -21,8 +21,7 @@ int gui_init()
 	keyboard = new CKeyboard();
 	loader->create(194,104,32,32,-1);
 	top->ShowDialog(loader);
-	console->create(20,20,280,200,-1);
-	
+	console->create(20,20,280,200,-1);	
 	bottom->ShowDialog(console);
 	return 0;
 }
@@ -32,7 +31,7 @@ int gui_destroy()
 	return 0;
 }
 //---------------------------------------------------------------------------
-extern "C" int widgets_draws()
+int widgets_draws()
 {
 	u8 *fb;
 	u16 w,h;
@@ -46,7 +45,7 @@ extern "C" int widgets_draws()
 	return 0;
 }
 //---------------------------------------------------------------------------
-extern "C" int widgets_touch_events(touchPosition *p)
+int widgets_touch_events(touchPosition *p)
 {
 	return bottom->onTouchEvent(p);	
 }
