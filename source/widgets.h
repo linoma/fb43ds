@@ -28,8 +28,9 @@ public:
 	virtual int set_Pos(int x, int y);
 	int get_WindowRect(LPRECT prc);
 	int set_Text(char *s);	
+	u32 get_ID(){return ID;};
 protected:
-	virtual int isInvalidate();
+	virtual int is_invalidate();
 	virtual int destroy();
 	CBaseWindow *get_Desktop();
 	
@@ -49,6 +50,7 @@ public:
 	int add(CBaseWindow *w);
 	virtual int draw(u8 *screen);
 	virtual int Invalidate();
+	CBaseWindow *get_Window(u32 id);
 protected:
 	virtual int EraseBkgnd(u8 *screen);
 	std::vector<CBaseWindow *>wins;
@@ -62,7 +64,7 @@ public:
 	int Show(CBaseWindow *w,int x,int y);
 	int Hide();
 	int onTimer();
-	int set_Pos(int x,int y);
+	int set_Pos(int x,int y);	
 protected:
 	int draw();
 	CBaseWindow *win;
@@ -81,13 +83,14 @@ public:
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
 	int SetTimer(CTimer *p);
 	int IncrementTimers();
-	int ShowCursor(CBaseWindow *w,int x,int y);
-	int HideCursor();
+	virtual int ShowCursor(CBaseWindow *w,int x,int y);
+	virtual int HideCursor();
 	u8 *get_Buffer();
 	int ShowDialog(CBaseWindow *w);
 	int HideDialog();
 	virtual int draw(u8 *screen);
 	virtual int Invalidate();
+	virtual int init(){return -1;};
 protected:
 	int onActivateWindow(CBaseWindow *win);
 	CBaseWindow *a_win,*dlg_win;
@@ -136,7 +139,8 @@ class CStatusBar  : public CContainerWindow{
 public:
 	CStatusBar();
 	virtual ~CStatusBar();
-	int draw(u8 *screen);
+protected:	
+	int EraseBkgnd(u8 *screen);
 };
 //---------------------------------------------------------------------------
 class CMenuBar : public CContainerWindow{

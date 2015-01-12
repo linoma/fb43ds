@@ -75,7 +75,7 @@ int CImage::draw(u8 *dst,int x,int y,int w,int h,int x0,int y0)
 //---------------------------------------------------------------------------
 CTimer::CTimer(LPDEFFUNC f,u64 i,u32 p)
 {
-	elapsed = svcGetSystemTick();
+	elapsed = 0;
 	interval = i;
 	fnc = f;
 	param = p;

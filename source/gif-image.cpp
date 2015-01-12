@@ -2,6 +2,7 @@
 #include "gif-image.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "gui.h"
 
 extern "C" u8 *linear_buffer;
 static const short InterlacedOffset[] = {0,4,2,1};
@@ -81,14 +82,17 @@ int CImageGif::load(u8 *src,int w,int h)
 				f_ihstep = (h << 12) / height;
 				if(buf == NULL){
 					ColorMap = GifFile->Image.ColorMap != NULL ? GifFile->Image.ColorMap : GifFile->SColorMap;
-					buf = (u8 *)linearAlloc(w*h + ColorMap->ColorCount * sizeof(u32));
+					i = ColorMap->ColorCount;					
+					buf = (u8 *)linearAlloc(w*h + i * sizeof(u32));
 					if(buf == NULL)
 						goto ex_load;
-					palette = (u32 *)&buf[w*h];		
-					i = ColorMap->ColorCount;
+					{
+						u32 u = (u32)&buf[w*h];
+						palette = (u32 *)((u + 3) & ~3);		
+					}
 					while(--i >= 0){
 						GifColorType* pColor = &ColorMap->Colors[i];
-						palette[i] = RGB(pColor->Red,pColor->Green, pColor->Blue);
+						palette[i] = RGB(pColor->Red,pColor->Green,pColor->Blue);
 					}					
 				}
 				
