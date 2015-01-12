@@ -3,7 +3,6 @@
 #include <string.h>
 #include <3ds.h>
 #include "gui.h"
-#include "loader_bin.h"
 #include "webrequest.h"
 #include "syshelper.h"
 
@@ -19,10 +18,11 @@ static int fb_login(u32 arg0)
 
 	if(!sys_helper || sys_helper->is_Busy())
 		return -1;
-	if(sys_helper->get_Result() == 0){
-		bottom->HideDialog();
-		top->HideDialog();
-	}
+	top->HideDialog();
+
+	if(sys_helper->get_Result())
+		return -2;
+	bottom->HideDialog();
 /*CContainerWindow *c = new CStatusBar();	
 	c->create(0,220,400,20,2);	
 	top->add(c);
@@ -57,9 +57,8 @@ static int sys_init(u32 arg0)
 {	
 	int ret;
 	
-	loader->load((u8 *)loader_bin);
-	loader->Start();
-	keyboard->init(bottom);
+	top->init();
+	bottom->init();
 	print("\nrequesting...");
 	CWebRequest *req = new CWebRequest();	
 	if(req == NULL)

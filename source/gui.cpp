@@ -7,20 +7,19 @@
 #include "widgets.h"
 #include "gfxdraw.h"
 #include "gfxtext.h"
+#include "loader_bin.h"
+#include "fb4_logo_bin.h"
 
 CDesktop *top,*bottom;
 CConsoleWindow *console;
-CLoaderWindow *loader;
 //---------------------------------------------------------------------------
 int gui_init()
 {
 	top = new CTopDesktop();
 	bottom = new CBottomDesktop();
 	console = new CConsoleWindow();
-	loader = new CLoaderWindow();
-	keyboard = new CKeyboard();
-	loader->create(194,104,32,32,-1);
-	top->ShowDialog(loader);
+	
+	((CTopDesktop *)top)->show_loader();
 	console->create(20,20,280,200,-1);	
 	bottom->ShowDialog(console);
 	return 0;
@@ -36,12 +35,14 @@ int widgets_draws()
 	u8 *fb;
 	u16 w,h;
 	
-	fb=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &w, &h);
+	fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &w, &h);
 	top->draw(fb);
-	fb=gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &w, &h);
+	fb = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &w, &h);
 	bottom->draw(fb);
+	
 	top->IncrementTimers();
 	bottom->IncrementTimers();
+	
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -53,17 +54,63 @@ int widgets_touch_events(touchPosition *p)
 CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 {
 	bkcolor = 0xFFFFFFFF;//0xFFd3d8e8
+	
 	CContainerWindow *c = new CStatusBar();	
 	c->create(0,0,rcWin.right,20,2);	
 	add(c);
+	
 	CBaseWindow *w = new CLabel("fb43ds");
 	w->create(2,2,50,10,3);
 	c->add(w);
+
+	CClock *p = new CClock();
+	p->create(rcWin.right-50,2,50,10,4);
+	c->add(p);
+	
+	SetTimer((CTimer *)p);
+	p->Start();
+	
+	loader = new CLoaderWindow();
+	loader->create(194,104,32,32,-1);
+	
+	logo = new CImageGif();
+}
+//---------------------------------------------------------------------------
+CTopDesktop::~CTopDesktop()
+{
+	if(logo != NULL)
+		delete logo;
+	logo = NULL;
+}
+//---------------------------------------------------------------------------
+int CTopDesktop::init()
+{
+	logo->load((u8 *)fb4_logo_bin);
+	loader->load((u8 *)loader_bin);
+	loader->Start();
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CTopDesktop::EraseBkgnd(u8 *screen)
+{
+	if(!CDesktop::EraseBkgnd(screen)){
+		if(logo != NULL)
+			logo->draw(screen,10,30);
+		return 0;
+	}
+	return -1;
+}
+//---------------------------------------------------------------------------
+int CTopDesktop::show_loader()
+{
+	SetTimer(loader);
+	return ShowDialog(loader);
 }
 //---------------------------------------------------------------------------
 int CBottomDesktop::EraseBkgnd(u8 *screen)
 {
-	if(!isInvalidate()){
+	if(!is_invalidate()){
 		gfxGradientFillRect(&rcWin,0,1,0xFFFFFFFF,bkcolor,screen);
 		return 0;
 	}
@@ -82,9 +129,29 @@ CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
 {
 	//bkcolor = 0xFF3a5795;
 	bkcolor=0xFFd3d8e8;
+	keyboard = new CKeyboard();
 	CContainerWindow *c = new CStatusBar();	
 	c->create(0,rcWin.bottom-14,rcWin.right,14,2);	
 	add(c);
+}
+//---------------------------------------------------------------------------
+int CBottomDesktop::ShowCursor(CBaseWindow *w,int x,int y)
+{
+	if(!CDesktop::ShowCursor(w,x,y)){
+		keyboard->show(w);
+		return 0;
+	}
+	return -1;
+}
+//---------------------------------------------------------------------------
+int CBottomDesktop::HideCursor()
+{
+	if(!CDesktop::HideCursor()){
+		if(keyboard != NULL)
+			keyboard->hide();
+		return 0;
+	}
+	return -1;
 }
 //---------------------------------------------------------------------------
 int CBottomDesktop::onTouchEvent(touchPosition *p)
@@ -92,6 +159,12 @@ int CBottomDesktop::onTouchEvent(touchPosition *p)
 	if(keyboard && !keyboard->onTouchEvent(p))
 		return 0;
 	return CDesktop::onTouchEvent(p);
+}
+//---------------------------------------------------------------------------
+int CBottomDesktop::init()
+{
+	keyboard->init(bottom);
+	return 0;
 }
 //---------------------------------------------------------------------------
 CConsoleWindow::CConsoleWindow() : CWindow()
@@ -138,7 +211,6 @@ int CLoaderWindow::onTimer()
 //---------------------------------------------------------------------------
 int CLoaderWindow::Start()
 {
-	bottom->SetTimer(this);
 	CAnimation::Start();
 	Invalidate();
 	return 0;
@@ -153,12 +225,48 @@ int CLoaderWindow::Stop()
 //---------------------------------------------------------------------------
 int CLoaderWindow::draw(u8 *screen)
 {
-	int x,y,w,h;
+	int w,h;
 	
-	if(isInvalidate() || pImage == NULL)
+	if(is_invalidate() || pImage == NULL)
 		return -1;
 	CBaseWindow::draw(screen);
 	w = rcWin.right - rcWin.left;
 	h = rcWin.bottom - rcWin.top;
 	return pImage->draw(screen,rcWin.left,rcWin.top,w,h,0,frame*32);
+}
+//---------------------------------------------------------------------------
+CClock::CClock() : CLabel("clock"),CAnimation(900000000)
+{
+}
+//---------------------------------------------------------------------------
+int CClock::onTimer()
+{
+	char c[20];
+	u64 t;
+	int h,m,s;
+	
+	t = osGetTime() / 1000;
+	s = t % 86400;
+	h = s / 3600;
+	s -= h * 3600;
+	m = s / 60;
+	s -= m * 60;	
+	sprintf(c,"%02d:%02d.%02d",h,m,s);
+	set_Text(c);
+	top->Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CClock::Start()
+{
+	CAnimation::Start();
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CClock::Stop()
+{
+	CAnimation::Stop();
+	Invalidate();
+	return 0;
 }

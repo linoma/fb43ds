@@ -19,5 +19,4 @@ protected:
 	POINT pt;
 };
 
-extern CKeyboard *keyboard;
 #endif
