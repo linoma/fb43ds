@@ -20,7 +20,8 @@ int CImage::destroy()
 		linearFree(buf);
 		buf = NULL;
 	}
-	bd=NULL;
+	bd = NULL;
+	status = 0;
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -48,7 +49,7 @@ int CImage::get_pixel(u32 *ret,int f,int flags)
 //---------------------------------------------------------------------------
 int CImage::draw(u8 *dst,int x,int y,int w,int h,int x0,int y0)
 {
-	if(buf == NULL || dst == NULL)
+	if(buf == NULL || dst == NULL || !(status & 1))
 		return -1;
 	dst += (239-y+x*240)*3;
 	if(w == -1)

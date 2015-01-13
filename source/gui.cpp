@@ -18,8 +18,6 @@ int gui_init()
 	top = new CTopDesktop();
 	bottom = new CBottomDesktop();
 	console = new CConsoleWindow();
-	
-	((CTopDesktop *)top)->show_loader();
 	console->create(20,20,280,200,-1);	
 	bottom->ShowDialog(console);
 	return 0;
@@ -55,6 +53,8 @@ CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 {
 	bkcolor = 0xFFFFFFFF;//0xFFd3d8e8
 	
+	logo=new CImageGif();
+	
 	CContainerWindow *c = new CStatusBar();	
 	c->create(0,0,rcWin.right,20,2);	
 	add(c);
@@ -63,17 +63,15 @@ CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 	w->create(2,2,50,10,3);
 	c->add(w);
 
-	CClock *p = new CClock();
+	/*CClock *p = new CClock();
 	p->create(rcWin.right-50,2,50,10,4);
 	c->add(p);
 	
 	SetTimer((CTimer *)p);
-	p->Start();
+	p->Start();*/
 	
 	loader = new CLoaderWindow();
 	loader->create(194,104,32,32,-1);
-	
-	logo = new CImageGif();
 }
 //---------------------------------------------------------------------------
 CTopDesktop::~CTopDesktop()
@@ -85,9 +83,9 @@ CTopDesktop::~CTopDesktop()
 //---------------------------------------------------------------------------
 int CTopDesktop::init()
 {
-	logo->load((u8 *)fb4_logo_bin);
 	loader->load((u8 *)loader_bin);
-	loader->Start();
+	show_loader();
+	logo->load((u8 *)fb4_logo_bin);
 	Invalidate();
 	return 0;
 }
@@ -105,6 +103,7 @@ int CTopDesktop::EraseBkgnd(u8 *screen)
 int CTopDesktop::show_loader()
 {
 	SetTimer(loader);
+	loader->Start();
 	return ShowDialog(loader);
 }
 //---------------------------------------------------------------------------

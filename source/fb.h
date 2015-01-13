@@ -7,4 +7,7 @@
 int fb_destroy(u32 arg0);
 int fb_init(u32 arg0);
 
+class CFBClient{
+};
+
 #endif

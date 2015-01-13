@@ -7,6 +7,7 @@
 
 u32 CWebRequest::client = 0;
 u32 CWebRequest::mem=0;
+extern FS_archive sdmcArchive;
 //---------------------------------------------------------------------------
 CWebRequest::CWebRequest()
 {
@@ -175,27 +176,25 @@ int CWebRequest::send(int mode)
 	res--;
 	i = SSL_read(ssl,_buf,4096);
 	print("%d\n",i);
-	_buf[99]=0;
-	{
-		FS_archive sdmcArchive;
+	{		
 		Handle sram;
-		FS_path sramPath;		
-		
-		sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-		FSUSER_OpenArchive(NULL, &sdmcArchive);		
-		sramPath.type = PATH_CHAR;
-		sramPath.size = 6 + 1;
-		sramPath.data = (u8*)"fb.txt";		
-		Result res = FSUSER_OpenFile(NULL, &sram, sdmcArchive, sramPath, FS_OPEN_CREATE|FS_OPEN_WRITE, FS_ATTRIBUTE_NONE);
-		if ((res & 0xFFFC03FF) == 0){
+			
+		Result res = FSUSER_OpenFile(NULL,&sram,sdmcArchive,FS_makePath(PATH_CHAR,"/lino.txt"),FS_OPEN_CREATE|FS_OPEN_WRITE,FS_ATTRIBUTE_NONE);
+		if (res == 0){
 			u32 byteswritten = 0;
 			FSFILE_Write(sram, &byteswritten, 0, (u32*)_buf, i, FS_WRITE_FLUSH);
 			FSFILE_Close(sram);
 		}
 	}
-	
 	bytesIn = i;
-	return -1;	
+	if(!i)
+		goto send_error;
+	res--;
+	i=parse_response();
+	if(i<1)
+		goto send_error;
+	res--;
+	return 0;	
 send_error:
 	destroy();
 	return res;
@@ -204,24 +203,62 @@ send_error:
 //---------------------------------------------------------------------------
 int CWebRequest::parse_response()
 {
-	char *p,*p1;
-	int len;
-	
+	char *p,*p1,*p2;
+	int len,parsed;
+
 	if(!bytesIn || !_buf)
 		return -1;
 	p = _buf;
+	parsed=0;
 	while((p1 = strtok(p,"\n")) != NULL){
-		len = strlen(p);
-		
-		p = p1 + len + 1;
+		len = strlen(p1);
+		if(p1[len-1] == '\r')
+			p1[len-1] = 0;
+       if(!p1[0])
+           break;
+       p = p1 + len + 1;
+       p2 = NULL;
+       if((p1 = strtok(p1,":")) != NULL){
+           p2 = p1+strlen(p1)+1;
+       }
+       if(!parsed){
+           if(p2 && p2[0])
+               return -2;
+           response["status-code"] = p2;
+       }
+       else{
+           if(stricmp(p1,"set-cookie")==0){
+               int i = 0;
+
+               while((p1 = strtok(p2,";")) != NULL){
+                   char *p3;
+
+                   if(i)
+                       break;
+                   p2=p1+strlen(p1)+1;
+                   i++;
+                   while((p3=strtok(p1,"=")) != NULL){
+                       p3 = p1 + strlen(p1) + 1;
+                       cookies[p1] = p3;
+                       break;
+                   }
+               }
+           }
+           else
+               response[p1] = p2;
+       }
+       parsed += len+1;
 	}
-	return 0;
+	return parsed;
 }
 //---------------------------------------------------------------------------
 int CWebRequest::request(int mode)
 {
 	strcpy(_buf,"GET /index.php HTTP/1.0\r\n");
-	strcat(_buf,"Host: www.facebook.com\r\n");
+	strcat(_buf,"Host: ");
+	strcat(_buf,inet_host);
+	strcat(_buf,"\r\n");
+	strcat(_buf,"User-Agent: Opera/9.50 (Windows NT 5.1; U; it)\r\n");
 	strcat(_buf,"\r\n\r\n");
 	return 0;
 }

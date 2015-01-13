@@ -17,13 +17,10 @@ extern int widgets_touch_events(touchPosition *p);
 int main(int argc, char** argv)
 {
 	touchPosition lastTouch;
-	Result rc;
 		
 	srvInit();	
-	aptInit();
-	
-	rc = CWebRequest::InitializeClient();
-	
+	aptInit();	
+	CWebRequest::InitializeClient();	
 	gfxInit();
 	hidInit(NULL);	
 	GPU_Init(NULL);

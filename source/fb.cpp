@@ -9,8 +9,8 @@
 LPDEFFUNC pfn_State = NULL;
 CSysHelper *sys_helper = NULL;
 u8 *linear_buffer = NULL;
+FS_archive sdmcArchive;
 
-int widgets_draws();
 //---------------------------------------------------------------------------
 static int fb_login(u32 arg0)
 {
@@ -18,10 +18,9 @@ static int fb_login(u32 arg0)
 
 	if(!sys_helper || sys_helper->is_Busy())
 		return -1;
-	top->HideDialog();
-
 	if(sys_helper->get_Result())
 		return -2;
+	top->HideDialog();		
 	bottom->HideDialog();
 /*CContainerWindow *c = new CStatusBar();	
 	c->create(0,220,400,20,2);	
@@ -75,6 +74,8 @@ int fb_init(u32 arg0)
 	Result rc;
 	int ret;
 	
+	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
+	FSUSER_OpenArchive(NULL, &sdmcArchive);	
 	if(gui_init())
 		return -1;
 	print("Initializing...");			

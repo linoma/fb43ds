@@ -220,10 +220,8 @@ int CBaseWindow::set_Text(char *s)
 	if(s){
 		len = strlen(s);
 		text = (char *)malloc(len+1);
-		if(text){
-			memset(text,0,len+1);
+		if(text)
 			strcpy(text,s);
-		}
 	}
 	Invalidate();
 	return 0;

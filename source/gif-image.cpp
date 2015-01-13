@@ -148,6 +148,7 @@ int CImageGif::load(u8 *src,int w,int h)
 			break;
 		}
 	}while(RecordType != TERMINATE_RECORD_TYPE);
+	status |= 1;
 ex_load:
 	if(res)
 		destroy();

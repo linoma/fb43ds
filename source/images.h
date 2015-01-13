@@ -47,6 +47,7 @@ protected:
 	virtual int destroy();
 	u8 *buf,*bd;
 	int width,height,format,alpha;
+	u32 status;
 };
 
 #endif
