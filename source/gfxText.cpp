@@ -74,14 +74,18 @@ void gfxDrawText(u8* fb, font_s* f, char* str, LPRECT prc,u32 flags)
 	for(k=dx=dy=0;k<length;k++){
 		char c = str[k];
 		if(c == '\n'){
-			dx = 0;
-			dy -= f->height;
+			if(!(flags&2)){
+				dx = 0;
+				dy -= f->height;
+			}
 			continue;
 		}
 		charDesc_s* cd = &f->desc[(int)c];		
 		if(!cd->data)
 			continue;
 		if((x + cd->xa + dx) >= prc->right){
+			if(flags&2)
+				return;
 			dx = 0;
 			dy -= f->height;
 		}		

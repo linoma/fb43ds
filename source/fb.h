@@ -4,10 +4,16 @@
 #ifndef __FBH__
 #define __FBH__
 
-int fb_destroy(u32 arg0);
 int fb_init(u32 arg0);
 
 class CFBClient{
+public:
+	CFBClient();
+	virtual ~CFBClient();
+	static int Initialize();
+	static int Destroy();
+	static int onTouchEvent(touchPosition *p,u32 flags);
+	
 };
-
+extern CFBClient *fb;
 #endif

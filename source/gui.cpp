@@ -44,11 +44,6 @@ int widgets_draws()
 	return 0;
 }
 //---------------------------------------------------------------------------
-int widgets_touch_events(touchPosition *p)
-{
-	return bottom->onTouchEvent(p);	
-}
-//---------------------------------------------------------------------------
 CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 {
 	bkcolor = 0xFFFFFFFF;//0xFFd3d8e8
@@ -130,7 +125,7 @@ CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
 	bkcolor=0xFFd3d8e8;
 	keyboard = new CKeyboard();
 	CContainerWindow *c = new CStatusBar();	
-	c->create(0,rcWin.bottom-14,rcWin.right,14,2);	
+	c->create(0,rcWin.bottom-20,rcWin.right,20,2);	
 	add(c);
 }
 //---------------------------------------------------------------------------
@@ -153,11 +148,11 @@ int CBottomDesktop::HideCursor()
 	return -1;
 }
 //---------------------------------------------------------------------------
-int CBottomDesktop::onTouchEvent(touchPosition *p)
+int CBottomDesktop::onTouchEvent(touchPosition *p,u32 flags)
 {
-	if(keyboard && !keyboard->onTouchEvent(p))
+	if(keyboard && !keyboard->onTouchEvent(p,flags))
 		return 0;
-	return CDesktop::onTouchEvent(p);
+	return CDesktop::onTouchEvent(p,flags);
 }
 //---------------------------------------------------------------------------
 int CBottomDesktop::init()
@@ -172,13 +167,48 @@ CConsoleWindow::CConsoleWindow() : CWindow()
 	color = 0xffffffff;
 }
 //---------------------------------------------------------------------------
+int CConsoleWindow::set_Text(char *s)
+{
+	int res,len,dy,top,right,dx;	
+	font_s *f;
+	char *p;
+	
+	res = CWindow::set_Text(s);
+	if(!text || !text_len)
+		return res;
+	if(!(f = font))
+		f = &fontDefault;
+	len = text_len;
+	dy = rcWin.bottom;
+	top = rcWin.top + f->height;
+	right = rcWin.right - rcWin.left;
+
+	p = &text[--len];
+	for(dx=0;len >= 0 && dy >= top;len--){
+		char c = *p--;
+		if(c == '\n'){
+			dy -= f->height;
+			continue;
+		}
+		charDesc_s* cd = &f->desc[(int)c];
+		if(!cd->data)
+			continue;
+		dx += cd->xa;
+		if(dx > right){
+			dx = cd->xa;
+			dy -= f->height;
+		}
+	}
+	return res;	
+}
+//---------------------------------------------------------------------------
 int CConsoleWindow::printf(char *fmt,...)
 {
 	va_list argptr;
 	int len;
 	char *s;
 
-	len = text ? strlen(text) : 0;
+	len = text ? text_len : 0;
 	s = (char *)malloc(len + 1024);
 	if(!s)
 		return -1;

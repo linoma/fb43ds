@@ -25,9 +25,9 @@ typedef int (*LPDEFFUNC)(u32);
 	rc.top += b;\
 	rc.bottom -= b;
 
-#define CopyRect(a,b) b.left = a.left;\
+#define CopyRect(b,a) b.left = a.left;\
 	b.top=a.top;\
 	b.right=a.right;\
-	b.bottom=a.botom;
+	b.bottom=a.bottom;
 	
 #endif

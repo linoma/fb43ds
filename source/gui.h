@@ -42,7 +42,7 @@ public:
 	CBottomDesktop();
 	virtual ~CBottomDesktop(){};
 	virtual int draw(u8 *screen);
-	int onTouchEvent(touchPosition *p);
+	int onTouchEvent(touchPosition *p,u32 flags=0);
 	int init();
 	int ShowCursor(CBaseWindow *w,int x,int y);
 	int HideCursor();
@@ -55,6 +55,7 @@ class CConsoleWindow : public CWindow{
 public:
 	CConsoleWindow();
 	int printf(char *fmt,...);
+	int set_Text(char *s);
 };
 
 

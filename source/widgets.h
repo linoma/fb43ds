@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <map>
 #include <3ds.h>
 #include "images.h"
 #include "font.h"
@@ -16,7 +17,7 @@ public:
 	int set_BkColor(u32 c);
 	int set_TextColor(u32 c);
 	gfxScreen_t get_Screen(){return scr;}
-	virtual int onTouchEvent(touchPosition *p);
+	virtual int onTouchEvent(touchPosition *p,u32 flags=0);
 	virtual int onKeysPressEvent(u32 press);
 	virtual int onKeysUpEvent(u32 press);
 	virtual int onCharEvent(u8 c);
@@ -24,22 +25,25 @@ public:
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
 	int set_Parent(CBaseWindow *w){parent = w;return 0;};
 	CBaseWindow *get_Parent(){return parent;};
-	virtual int Invalidate();
+	virtual int Invalidate(int flags=0);
 	virtual int set_Pos(int x, int y);
 	int get_WindowRect(LPRECT prc);
-	int set_Text(char *s);	
+	virtual int set_Text(char *s);	
 	u32 get_ID(){return ID;};
+	int set_Events(char *key,void *value);
 protected:
 	virtual int is_invalidate();
 	virtual int destroy();
+	virtual int fire_event(const char *key);
 	CBaseWindow *get_Desktop();
 	
-	u32 color,bkcolor,status,ID,redraw;
+	u32 color,bkcolor,status,ID,redraw,text_len;
 	gfxScreen_t scr;
 	RECT rcWin;
 	CBaseWindow *parent;
 	char *text;
 	font_s *font;
+	std::map<std::string,void *>events;
 };
 
 class CContainerWindow : public CBaseWindow{
@@ -49,7 +53,7 @@ public:
 	virtual ~CContainerWindow(){};
 	int add(CBaseWindow *w);
 	virtual int draw(u8 *screen);
-	virtual int Invalidate();
+	virtual int Invalidate(int flags=0);
 	CBaseWindow *get_Window(u32 id);
 protected:
 	virtual int EraseBkgnd(u8 *screen);
@@ -77,7 +81,7 @@ class CDesktop : public CContainerWindow {
 public:
 	CDesktop(gfxScreen_t s);
 	virtual ~CDesktop(){};
-	virtual int onTouchEvent(touchPosition *p);
+	virtual int onTouchEvent(touchPosition *p,u32 flags=0);
 	int onKeysPressEvent(u32 press);
 	int onKeysUpEvent(u32 press);	
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
@@ -85,11 +89,12 @@ public:
 	int IncrementTimers();
 	virtual int ShowCursor(CBaseWindow *w,int x,int y);
 	virtual int HideCursor();
+	virtual int SetCursorPos(int x,int y);
 	u8 *get_Buffer();
 	int ShowDialog(CBaseWindow *w);
 	int HideDialog();
 	virtual int draw(u8 *screen);
-	virtual int Invalidate();
+	virtual int Invalidate(int flags=0);
 	virtual int init(){return -1;};
 protected:
 	int onActivateWindow(CBaseWindow *win);
@@ -97,14 +102,12 @@ protected:
 	CCursor *cursor;
 	std::vector<CTimer *>timers;	
 };
-
+//---------------------------------------------------------------------------
 class CWindow : public CBaseWindow {
 public:	
 	CWindow();
 	virtual ~CWindow();
 	virtual int draw(u8 *screen);
-protected:
-	int (*cb)(CWindow *);
 };
 //---------------------------------------------------------------------------
 class CLabel : public CBaseWindow{	
@@ -170,6 +173,8 @@ public:
 protected:
 	int HideCursor();
 	int ShowCursor(int x,int y);
+	u32 char_pos;
+	POINT ptCursor;
 };
 //---------------------------------------------------------------------------
 class CEditBox : public CEditText

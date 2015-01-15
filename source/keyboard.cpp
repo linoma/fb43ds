@@ -4,35 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define F_1	0x0
-#define F_2	0x0
-#define F_3	0x0
-#define F_4	0x0
-#define F_5	0x0
-#define F_6	0x0
-#define F_7	0x0
-#define F_8	0x0
-#define F_9	0x0
-#define F10	0x0
-#define F11	0x0
-#define F12	0x0
-
-#define TAB	0x0
-
-#define ESC	0x0 // Escape
-#define BSP	0x8 // Backspace
-#define CAP	0x2 // Caps
-#define RET	'\n' // Enter
-#define SHF	0x4 // Shift
-#define	CTR	0x0 // Ctrl
-#define SPC	0x20 // Space
-#define ALT	0x0 // Alt
-#define NDS	0x0 // DS
-#define SCN	0x0 // Screen
-
-#define CUP	0x0 // Cursor up
-#define CDW	0x0 // Cursor down
-
 const unsigned char keyboard_Hit[512] = {
 0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,
 0x0,0x0,ESC,ESC,0x0,F_1,F_1,F_2,F_2,F_3,F_3,F_4,F_4,F_5,F_5,F_6,F_6,F_7,F_7,F_8,F_8,F_9,F_9,F10,F10,F11,F11,F12,F12,0x0,0x0,0x0,
@@ -110,15 +81,15 @@ int CKeyboard::draw(u8 *dst)
 	return CImageGif::draw(dst,pt.x,pt.y,256,128,0,(status & 2) ? 128 : 0);
 }
 //---------------------------------------------------------------------------
-int CKeyboard::onTouchEvent(touchPosition *p)
+int CKeyboard::onTouchEvent(touchPosition *p,u32 flags)
 {
 	int x,y;	
 	u8 c;
 	
 	if(!(status & 1))
 		return -1;
-	x=p->px;
-	y=p->py;
+	x = p->px;
+	y = p->py;
 	if(x < pt.x || y < pt.y || y > (pt.y+128) || x > (pt.x+256))
 		return -2;
 	x = (x-pt.x)>>3;
@@ -129,10 +100,16 @@ int CKeyboard::onTouchEvent(touchPosition *p)
 		c = keyboard_Hit[x+(y*32)];
 	else
 		c = keyboard_Hit_Shift[x+(y*32)];
-	if(c == CAP)
+	if(!(flags&4))
+		return -4;
+	if(c == CAP){
 		status |= 2;		
-	else if(c == SHF)
+		desk->Invalidate();
+	}
+	else if(c == SHF){
 		status ^= 2;
+		desk->Invalidate();
+	}
 	else if(win != NULL)
 		win->onCharEvent(c);
 	return 0;
