@@ -29,8 +29,11 @@ public:
 	virtual int set_Pos(int x, int y);
 	int get_WindowRect(LPRECT prc);
 	virtual int set_Text(char *s);	
+	int get_Text(char *s,u32 len);
 	u32 get_ID(){return ID;};
 	int set_Events(char *key,void *value);
+	virtual int Show();
+	virtual int Hide();
 protected:
 	virtual int is_invalidate();
 	virtual int destroy();
@@ -52,6 +55,8 @@ public:
 	CContainerWindow(gfxScreen_t s);
 	virtual ~CContainerWindow(){};
 	int add(CBaseWindow *w);
+	int remove(CBaseWindow *w);
+	int remove(u32 id);
 	virtual int draw(u8 *screen);
 	virtual int Invalidate(int flags=0);
 	CBaseWindow *get_Window(u32 id);
@@ -77,6 +82,12 @@ protected:
 	SIZE sz;
 };
 
+class CDialog : public CContainerWindow {
+public:
+	CDialog();
+	virtual ~CDialog();
+};
+
 class CDesktop : public CContainerWindow {
 public:
 	CDesktop(gfxScreen_t s);
@@ -91,7 +102,7 @@ public:
 	virtual int HideCursor();
 	virtual int SetCursorPos(int x,int y);
 	u8 *get_Buffer();
-	int ShowDialog(CBaseWindow *w);
+	int ShowDialog(CDialog *w);
 	int HideDialog();
 	virtual int draw(u8 *screen);
 	virtual int Invalidate(int flags=0);
@@ -122,7 +133,9 @@ public:
 	CImageWindow();
 	virtual int draw(u8 *screen);
 	virtual int load(u8 *src,int w=-1,int h=-1);
+	virtual int load(CImage *img);
 protected:
+	virtual int destroy();
 	CImage *pImage;
 };
 //---------------------------------------------------------------------------

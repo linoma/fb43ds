@@ -45,12 +45,12 @@ int main(int argc, char** argv)
 				if(d <= 5){
 					d = abs(lt.py-lastTouch.py);
 					if(d <= 5)
-						i=1;
+						i = 1;
 				}
 				if(i)
 					lp_frame++;
 				else{
-					lp_frame=0;
+					lp_frame = 0;
 					CFBClient::onTouchEvent(&lt,2);
 				}
 			}
@@ -61,15 +61,15 @@ int main(int argc, char** argv)
 		else{
 			if(frame)
 				CFBClient::onTouchEvent(&lt,lp_frame > 120 ? 8 : 4);
-			frame=0;
-			lp_frame=0;
+			frame = 0;
+			lp_frame = 0;
 		}
 		if(pfn_State)
 			pfn_State(0);
 		widgets_draws();
 		gfxFlushBuffers();
 		gfxSwapBuffers();
-		gspWaitForEvent(GSPEVENT_VBlank0, false);
+		gspWaitForVBlank();
 	}
 	CFBClient::Destroy();
 	CWebRequest::DestroyClient();

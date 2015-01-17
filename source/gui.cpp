@@ -7,17 +7,21 @@
 #include "widgets.h"
 #include "gfxdraw.h"
 #include "gfxtext.h"
-#include "loader_bin.h"
 #include "fb4_logo_bin.h"
 
-CDesktop *top,*bottom;
+CTopDesktop *top;
+CBottomDesktop *bottom;
 CConsoleWindow *console;
+CImage *loader_img;
+CLoaderWindow *loaderDlg;
 //---------------------------------------------------------------------------
 int gui_init()
 {
 	top = new CTopDesktop();
 	bottom = new CBottomDesktop();
 	console = new CConsoleWindow();
+	loader_img = new CImageGif();
+	loaderDlg = new CLoaderWindow();
 	console->create(20,20,280,200,-1);	
 	bottom->ShowDialog(console);
 	return 0;
@@ -31,11 +35,10 @@ int gui_destroy()
 int widgets_draws()
 {
 	u8 *fb;
-	u16 w,h;
 	
-	fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &w, &h);
+	fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL,NULL);
 	top->draw(fb);
-	fb = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, &w, &h);
+	fb = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, NULL,NULL);
 	bottom->draw(fb);
 	
 	top->IncrementTimers();
@@ -48,7 +51,7 @@ CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 {
 	bkcolor = 0xFFFFFFFF;//0xFFd3d8e8
 	
-	logo=new CImageGif();
+	logo = new CImageGif();
 	
 	CContainerWindow *c = new CStatusBar();	
 	c->create(0,0,rcWin.right,20,2);	
@@ -64,22 +67,18 @@ CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 	
 	SetTimer((CTimer *)p);
 	p->Start();*/
-	
-	loader = new CLoaderWindow();
-	loader->create(194,104,32,32,-1);
 }
 //---------------------------------------------------------------------------
 CTopDesktop::~CTopDesktop()
 {
 	if(logo != NULL)
-		delete logo;
+		logo->release();
 	logo = NULL;
 }
 //---------------------------------------------------------------------------
 int CTopDesktop::init()
 {
-	loader->load((u8 *)loader_bin);
-	show_loader();
+	ShowDialog(loaderDlg);
 	logo->load((u8 *)fb4_logo_bin);
 	Invalidate();
 	return 0;
@@ -93,13 +92,6 @@ int CTopDesktop::EraseBkgnd(u8 *screen)
 		return 0;
 	}
 	return -1;
-}
-//---------------------------------------------------------------------------
-int CTopDesktop::show_loader()
-{
-	SetTimer(loader);
-	loader->Start();
-	return ShowDialog(loader);
 }
 //---------------------------------------------------------------------------
 int CBottomDesktop::EraseBkgnd(u8 *screen)
@@ -124,9 +116,18 @@ CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
 	//bkcolor = 0xFF3a5795;
 	bkcolor=0xFFd3d8e8;
 	keyboard = new CKeyboard();
+	
 	CContainerWindow *c = new CStatusBar();	
-	c->create(0,rcWin.bottom-20,rcWin.right,20,2);	
+	c->create(0,rcWin.bottom-20,rcWin.right,20,-1);		
 	add(c);
+}
+//---------------------------------------------------------------------------
+CBottomDesktop::~CBottomDesktop()
+{
+	if(keyboard){
+		keyboard->release();
+		keyboard=NULL;
+	}
 }
 //---------------------------------------------------------------------------
 int CBottomDesktop::ShowCursor(CBaseWindow *w,int x,int y)
@@ -150,6 +151,8 @@ int CBottomDesktop::HideCursor()
 //---------------------------------------------------------------------------
 int CBottomDesktop::onTouchEvent(touchPosition *p,u32 flags)
 {
+	if(dlg_win)
+		return dlg_win->onTouchEvent(p,flags);
 	if(keyboard && !keyboard->onTouchEvent(p,flags))
 		return 0;
 	return CDesktop::onTouchEvent(p,flags);
@@ -161,10 +164,22 @@ int CBottomDesktop::init()
 	return 0;
 }
 //---------------------------------------------------------------------------
-CConsoleWindow::CConsoleWindow() : CWindow()
+CConsoleWindow::CConsoleWindow() : CDialog()
 {
 	bkcolor = 0xff000000;
 	color = 0xffffffff;
+}
+//---------------------------------------------------------------------------
+int CConsoleWindow::EraseBkgnd(u8 *screen)
+{
+	if(!CDialog::EraseBkgnd(screen)){
+		if(text){
+			gfxSetTextColor(color);
+			gfxDrawText(screen,font,text,&rcWin,0);
+		}
+		return 0;
+	}
+	return -1;
 }
 //---------------------------------------------------------------------------
 int CConsoleWindow::set_Text(char *s)
@@ -173,7 +188,7 @@ int CConsoleWindow::set_Text(char *s)
 	font_s *f;
 	char *p;
 	
-	res = CWindow::set_Text(s);
+	res = CDialog::set_Text(s);
 	if(!text || !text_len)
 		return res;
 	if(!(f = font))
@@ -223,11 +238,11 @@ int CConsoleWindow::printf(char *fmt,...)
 	return 0;
 }
 //---------------------------------------------------------------------------
-CLoaderWindow::CLoaderWindow() : CImageWindow(),CAnimation(400000000)
+CLoader::CLoader() : CImageWindow(),CAnimation(400000000)
 {
 }
 //---------------------------------------------------------------------------
-int CLoaderWindow::onTimer()
+int CLoader::onTimer()
 {
 	frame++;
 	if(pImage != NULL){
@@ -238,21 +253,21 @@ int CLoaderWindow::onTimer()
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CLoaderWindow::Start()
+int CLoader::Start()
 {
 	CAnimation::Start();
 	Invalidate();
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CLoaderWindow::Stop()
+int CLoader::Stop()
 {
 	CAnimation::Stop();
 	Invalidate();
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CLoaderWindow::draw(u8 *screen)
+int CLoader::draw(u8 *screen)
 {
 	int w,h;
 	
@@ -298,4 +313,47 @@ int CClock::Stop()
 	CAnimation::Stop();
 	Invalidate();
 	return 0;
+}
+//---------------------------------------------------------------------------
+CLoaderWindow::CLoaderWindow() : CDialog()
+{
+	loader = NULL;
+}
+//---------------------------------------------------------------------------
+CLoaderWindow::~CLoaderWindow()
+{
+}
+//---------------------------------------------------------------------------
+int CLoaderWindow::Hide()
+{
+	if(!CDialog::Hide()){
+		if(loader)
+			loader->set_Enabled(0);
+	}
+	return -1;
+}
+//---------------------------------------------------------------------------
+int CLoaderWindow::Show()
+{
+	if(!CDialog::Show()){
+		if(loader == NULL){
+			loader = new CLoader();
+			loader->create(194,104,32,32,-1);
+			loader->load(loader_img);
+			add(loader);
+			((CDesktop *)parent)->SetTimer(loader);
+		}
+		loader->Start();
+	}
+	return -1;
+}
+//---------------------------------------------------------------------------
+int CLoaderWindow::destroy()
+{
+	int res = CDialog::destroy();
+	if(loader!= NULL){
+		delete loader;
+		loader=NULL;
+	}
+	return res;
 }

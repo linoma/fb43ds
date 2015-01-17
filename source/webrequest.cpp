@@ -182,11 +182,13 @@ int CWebRequest::send(int mode)
 	if(request(mode))
 		goto send_error;
 	res--;
-	i=SSL_write(ssl,_buf,strlen(_buf));
+	i = SSL_write(ssl,_buf,strlen(_buf));
 	if(!i)
 		goto send_error;
 	res--;
 	i = SSL_read(ssl,_buf,4096);
+	if(i < 1)
+		goto send_error;
 	{		
 		Handle sram;
 			
@@ -198,8 +200,6 @@ int CWebRequest::send(int mode)
 		}
 	}
 	bytesIn = i;
-	if(!i)
-		goto send_error;
 	res--;
 	i = parse_response();
 	if(i < 1)

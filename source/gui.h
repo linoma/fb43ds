@@ -6,14 +6,25 @@
 #ifndef __GUIH__
 #define __GUIH__
 
-class CLoaderWindow : public CImageWindow, public CAnimation{
+class CLoader : public CImageWindow, public CAnimation{
 public:
-	CLoaderWindow();
-	virtual ~CLoaderWindow(){};
+	CLoader();
+	virtual ~CLoader(){};
 	int onTimer();
 	int Start();
 	int Stop();
 	int draw(u8 *screen);
+};
+
+class CLoaderWindow : public CDialog{
+public:
+	CLoaderWindow();
+	virtual ~CLoaderWindow();
+	int Show();
+	int Hide();
+protected:
+	int destroy();
+	CLoader *loader;
 };
 
 class CClock : public CLabel, public CAnimation{
@@ -30,17 +41,15 @@ public:
 	CTopDesktop();
 	virtual ~CTopDesktop();
 	int init();
-	int show_loader();
 protected:
 	int EraseBkgnd(u8 *screen);
 	CImageGif *logo;
-	CLoaderWindow *loader;
 };
 
 class CBottomDesktop : public CDesktop{
 public:
 	CBottomDesktop();
-	virtual ~CBottomDesktop(){};
+	virtual ~CBottomDesktop();
 	virtual int draw(u8 *screen);
 	int onTouchEvent(touchPosition *p,u32 flags=0);
 	int init();
@@ -51,20 +60,24 @@ protected:
 	CKeyboard *keyboard;
 };
 
-class CConsoleWindow : public CWindow{
+class CConsoleWindow : public CDialog{
 public:
 	CConsoleWindow();
 	int printf(char *fmt,...);
 	int set_Text(char *s);
+protected:
+	virtual int EraseBkgnd(u8 *screen);
 };
 
 
 int gui_init();
 int gui_destroy();
 
-extern CDesktop *top,*bottom;
+extern CTopDesktop *top;
+extern CBottomDesktop *bottom;
 extern CConsoleWindow *console;
-extern CLoaderWindow *loader;
+extern CImage *loader_img;
+extern CLoaderWindow *loaderDlg;
 
 #define print console->printf
 

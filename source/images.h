@@ -35,7 +35,6 @@ protected:
 class CImage{
 public:
 	CImage();
-	virtual ~CImage();
 	virtual int load(u8 *src,int w=-1,int h=-1);
 	virtual int draw(u8 *dst,int x,int y,int w=-1,int h=-1,int x0=0,int y0=0);
 	virtual int begin_draw(int x=0,int y=0);
@@ -43,11 +42,14 @@ public:
 	int get_Width(){return width;};
 	int get_Height(){return height;};
 	void set_Alpha(int v){alpha=v;};
-protected:
+	u32 add_ref(u32 v=1);
+	void release();	
+protected:	
+	virtual ~CImage();
 	virtual int destroy();
 	u8 *buf,*bd;
 	int width,height,format,alpha;
-	u32 status;
+	u32 status,refs;
 };
 
 #endif

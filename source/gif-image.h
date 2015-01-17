@@ -11,6 +11,7 @@ public:
 	int get_pixel(u32 *ret,int f=0,int flags=1);
 	int begin_draw(int x=0,int y=0);
 protected:
+	virtual ~CImageGif();
 	static int readFunc(GifFileType* GifFile, GifByteType* buf, int count);
 	int destroy();
 	u32 *palette;

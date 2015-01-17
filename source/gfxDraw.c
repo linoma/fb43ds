@@ -216,52 +216,59 @@ void gfxFillRoundRect(int x1, int y1, int x2, int y2, int radius,u32 b_col,u32 f
 	}
 }
 //---------------------------------------------------------------------------
-void gfxRect(int x1, int y1, int x2, int y2, u32 col, u8* screen)
+void gfxRect(LPRECT prc, u32 col, u8* screen)
 {
 	int X1,X2,Y1,Y2,i;
-	u8 *p,*p1,r,g,b,a;
+	u8 *p,*p1,r,g,b,ad,as;
 	
-	a = (u8)(col >> 24);
+	ad = (u8)(col >> 24);
+	as=255-ad;
 	r = (u8)(col >> 16);
 	g = (u8)(col >> 8);
 	b = (u8)col;
-	
-	if (x1<x2){ 
-		X1=x1;
-		X2=x2;
+	if(prc->left < prc->right){ 
+		X1 = prc->left;
+		X2 = prc->right;
 	} 
-	else { 
-		X1=x2;
-		X2=x1;
+	else{ 
+		X1 = prc->right;
+		X2 = prc->left;
+	}
+	if(prc->top < prc->bottom){ 
+		Y1 = prc->top;
+		Y2 = prc->bottom;
 	} 
-
-	if (y1<y2){ 
-		Y1=y1;
-		Y2=y2;
-	} 
-	else { 
-		Y1=y2;
-		Y2=y1;
+	else{ 
+		Y1 = prc->bottom;
+		Y2 = prc->top;
 	}
 	p = screen + (239 - Y1 + X1 * 240)*3;
 	p1 = screen + (239 - Y1 + X2 * 240)*3;
 	for(i=Y1;i<=Y2;i++){
-		p[0] = b;p[1]=g;p[2]=r;
+		p[0] = ((p[0]*as)+(b*ad))>>8;
+		p[1] = ((p[1]*as)+(g*ad))>>8;
+		p[2] = ((p[2]*as)+(r*ad))>>8;
 		p -= 3;
-		p1[0] = b;p1[1]=g;p1[2]=r;
+		p1[0] = ((p1[0]*as)+(b*ad))>>8;
+		p1[1] = ((p1[1]*as)+(g*ad))>>8;
+		p1[2] = ((p1[2]*as)+(r*ad))>>8;
 		p1 -= 3;		
 	}
 	p = screen + (239 - Y1 + X1 * 240)*3;
 	p1 = screen + (239 - Y2 + X1 * 240)*3;
 	for(i=X1;i<=X2;i++){
-		p[0] = b;p[1]=g;p[2]=r;
+		p[0] = ((p[0]*as)+(b*ad))>>8;
+		p[1] = ((p[1]*as)+(g*ad))>>8;
+		p[2] = ((p[2]*as)+(r*ad))>>8;
 		p += 240*3;
-		p1[0] = b;p1[1]=g;p1[2]=r;
+		p1[0] = ((p1[0]*as)+(b*ad))>>8;
+		p1[1] = ((p1[1]*as)+(g*ad))>>8;
+		p1[2] = ((p1[2]*as)+(r*ad))>>8;
 		p1 += 240*3;
 	}	
 }
 //---------------------------------------------------------------------------
-void gfxFillRect(int x1, int y1, int x2, int y2, u32 col, u8* screen)
+void gfxFillRect(LPRECT prc, u32 col, u8* screen)
 {
 	int X1,X2,Y1,Y2,i,j;
 	u8 r,g,b,ad,as;
@@ -271,23 +278,23 @@ void gfxFillRect(int x1, int y1, int x2, int y2, u32 col, u8* screen)
 	r = (u8)(col >> 16);
 	g = (u8)(col >> 8);
 	b = (u8)col;
-	if (x1<x2){ 
-		X1=x1;
-		X2=x2;
+	if(prc->left < prc->right){ 
+		X1 = prc->left;
+		X2 = prc->right;
 	} 
-	else { 
-		X1=x2;
-		X2=x1;
-	} 
-
-	if (y1<y2){ 
-		Y1=y1;
-		Y2=y2;
-	} 
-	else { 
-		Y1=y2;
-		Y2=y1;
+	else{ 
+		X1 = prc->right;
+		X2 = prc->left;
 	}
+	if(prc->top < prc->bottom){ 
+		Y1 = prc->top;
+		Y2 = prc->bottom;
+	} 
+	else{ 
+		Y1 = prc->bottom;
+		Y2 = prc->top;
+	}
+
 	screen += (239 - Y1 + X1 * 240)*3;
 	for(i=X1;i<=X2;i++){
 		u8 *p1 = screen;

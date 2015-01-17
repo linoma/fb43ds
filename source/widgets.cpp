@@ -77,10 +77,11 @@ CBaseWindow::CBaseWindow()
 {
 	color = 0xFF000000;
 	bkcolor = 0xFFFFFFFF;
-	scr=GFX_TOP;
+	scr = GFX_TOP;
 	text = NULL;
 	text_len = 0;
 	font = NULL;
+	status = 0;
 	Invalidate();	
 }
 //---------------------------------------------------------------------------
@@ -92,12 +93,25 @@ CBaseWindow::CBaseWindow(gfxScreen_t s)
 	text = NULL;
 	text_len = 0;
 	font = NULL;
+	status = 0;
 	Invalidate();
 }
 //---------------------------------------------------------------------------
 CBaseWindow::~CBaseWindow()
 {
 	destroy();
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::Show()
+{
+	status &= ~4;
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::Hide()
+{
+	status |= 4;
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CBaseWindow::is_invalidate()
@@ -107,6 +121,8 @@ int CBaseWindow::is_invalidate()
 	redraw--;
 	if(!redraw)
 		status &= ~2;
+	if(status & 4)
+		return -2;
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -115,8 +131,8 @@ int CBaseWindow::draw(u8 *screen)
 	if(is_invalidate())
 		return -1;
 	if((bkcolor >> 24) == 0)
-		return -2;
-	gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,bkcolor,screen);
+		return 0;
+	gfxFillRect(&rcWin,bkcolor,screen);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -159,7 +175,7 @@ int CBaseWindow::set_TextColor(u32 c)
 //---------------------------------------------------------------------------
 int CBaseWindow::onTouchEvent(touchPosition *p,u32 flags)
 {
-	if(!(flags&4))
+	if(!(flags & 4))
 		return -5;
 	status &= ~1;
 	if(p->px < rcWin.left)
@@ -206,10 +222,11 @@ int CBaseWindow::set_Pos(int x,int y)
 //---------------------------------------------------------------------------
 int CBaseWindow::Invalidate(int flags)
 {
-	if(flags&1)
-		redraw=2;
+	if(flags & 1)
+		redraw = 2;
 	else
 		redraw += 2;
+	redraw=2;
 	status |= 2;		
 	return 0;
 }
@@ -252,21 +269,33 @@ int CBaseWindow::set_Text(char *s)
 	text_len = 0;
 	if(s){
 		len = strlen(s);
-		text = (char *)malloc(len+1);
-		if(text){
-			strcpy(text,s);
-			text_len = len;
+		if(len){
+			text = (char *)malloc(len+1);
+			if(text){
+				strcpy(text,s);
+				text_len = len;
+			}
 		}
 	}
 	Invalidate();
 	return 0;
 }
 //---------------------------------------------------------------------------
+int CBaseWindow::get_Text(char *s,u32 len)
+{
+	if(!text)
+		return 0;
+	if(!s || len<text_len)
+		return text_len;
+	strcpy(s,text);
+	return text_len;
+}
+//---------------------------------------------------------------------------
 int CBaseWindow::destroy()
 {	
 	if(text){
 		free(text);
-		text=NULL;
+		text = NULL;
 		text_len = 0;
 	}
 	return 0;
@@ -291,11 +320,11 @@ CContainerWindow::CContainerWindow(gfxScreen_t s) : CBaseWindow(s)
 //---------------------------------------------------------------------------
 int CContainerWindow::draw(u8 *screen)
 {
+	if(status & 4)
+		return -3;
 	int res = EraseBkgnd(screen);
-	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
-		if(!(*win)->draw(screen))
-			res = res;
-	}
+	for(std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
+		(*win)->draw(screen);
 	return res;
 }
 //---------------------------------------------------------------------------
@@ -307,8 +336,9 @@ int CContainerWindow::EraseBkgnd(u8 *screen)
 int CContainerWindow::Invalidate(int flags)
 {
 	flags |=1;
+	int i=0;
 	CBaseWindow::Invalidate(flags);
-	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win,i++)
 		(*win)->Invalidate(flags);
 	return 0;
 }
@@ -325,6 +355,28 @@ int CContainerWindow::add(CBaseWindow *w)
 	w->set_Pos(rcWin.left+rc.left,rcWin.top+rc.top);
 	Invalidate();
 	return 0;
+}
+//---------------------------------------------------------------------------
+int CContainerWindow::remove(CBaseWindow *w)
+{
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		if((*win) == w){
+			wins.erase(win);
+			return 0;
+		}
+	}
+	return -1;
+}
+//---------------------------------------------------------------------------
+int CContainerWindow::remove(u32 id)
+{
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		if((*win)->get_ID() == id){
+			wins.erase(win);
+			return 0;
+		}
+	}
+	return -1;
 }
 //---------------------------------------------------------------------------
 CBaseWindow * CContainerWindow::get_Window(u32 id)
@@ -448,14 +500,19 @@ int CDesktop::HideCursor()
 //---------------------------------------------------------------------------	
 int CDesktop::HideDialog()
 {
-	dlg_win = NULL;
+	if(dlg_win != NULL){
+		((CDialog *)dlg_win)->Hide();
+		dlg_win = NULL;
+	}
 	Invalidate();
 	return 0;
 }
 //---------------------------------------------------------------------------	
-int CDesktop::ShowDialog(CBaseWindow *w)
+int CDesktop::ShowDialog(CDialog *w)
 {
 	dlg_win = w;
+	w->set_Parent(this);
+	w->Show();
 	Invalidate();
 	return 0;
 }
@@ -466,13 +523,14 @@ int CDesktop::draw(u8 *screen)
 	if(dlg_win == NULL)
 		return res;
 	if(!res)
-		gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0x80000000,screen);
+		gfxFillRect(&rcWin,0x60000000,screen);
 	dlg_win->draw(screen);
 	return 0;
 }
 //---------------------------------------------------------------------------	
 int CDesktop::Invalidate(int flags)
 {
+	flags |=1;
 	int res = CContainerWindow::Invalidate(flags);
 	if(dlg_win)
 		dlg_win->Invalidate(flags);
@@ -514,22 +572,22 @@ int CLabel::draw(u8 *screen)
 	if(is_invalidate())
 		return -1;
 	if(!text || !text[0])
-		return -2;	
+		return -2;
 	gfxSetTextColor(color);
-	gfxDrawText(screen,font, text,&rcWin,0);
+	gfxDrawText(screen,font,text,&rcWin,0);
 	return 0;
 }
 //---------------------------------------------------------------------------
 CButton::CButton(char *c) : CBaseWindow()
 {
-	bkcolor = 0xFFDDDDDD;
+	bkcolor = 0xFFb0b0b0;
 	accel = 0;
 	set_Text(c);
 }
 //---------------------------------------------------------------------------
 CButton::CButton() : CBaseWindow()
 {
-	bkcolor = 0xFFDDDDDD;
+	bkcolor = 0xFFb0b0b0;
 	accel = 0;
 }
 //---------------------------------------------------------------------------
@@ -541,9 +599,8 @@ int CButton::draw(u8 *screen)
 {
 	if(is_invalidate())
 		return -1;
-	gfxFillRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0xff606060,screen);
-	gfxFillRect(rcWin.left,rcWin.top,rcWin.right-2,rcWin.bottom-2,0xfff0f0f0,screen);
-	gfxFillRect(rcWin.left+2,rcWin.top+2,rcWin.right-2,rcWin.bottom-2,bkcolor,screen);	
+	gfxGradientFillRect(&rcWin,0,1,0xFFDDDDDD,bkcolor,screen);
+	gfxRect(&rcWin,0x80aaaaaa,screen);
 	if(text){
 		gfxSetTextColor(color);
 		gfxDrawText(screen,font,text,&rcWin,1);
@@ -610,7 +667,7 @@ int CEditText::draw(u8 *screen)
 {
 	int res = CBaseWindow::draw(screen);
 	if(!res){
-		gfxRect(rcWin.left,rcWin.top,rcWin.right,rcWin.bottom,0xffa0a0a0,screen);
+		gfxRect(&rcWin,0xffa0a0a0,screen);
 		if(text){
 			RECT rc;
 			
@@ -701,8 +758,6 @@ int CEditText::onCharEvent(u8 c)
 	d = (CDesktop *)get_Desktop();
 	if(d)
 		d->SetCursorPos(ptCursor.x,ptCursor.y);
-	sprintf(b,"%d %d",len,ptCursor.x);
-	svcOutputDebugString(b,strlen(b));
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -716,12 +771,35 @@ int CImageWindow::draw(u8 *screen)
 {
 	int w,h;
 	
-	if(is_invalidate() || pImage == NULL)
+	if(is_invalidate())
 		return -1;
 	CBaseWindow::draw(screen);
+	if(!pImage)
+		return 0;
 	w = rcWin.right-rcWin.left;
 	h = rcWin.bottom-rcWin.top;
 	return pImage->draw(screen,rcWin.left,rcWin.top,w,h);
+}
+//---------------------------------------------------------------------------
+int CImageWindow::load(CImage *src)
+{
+	if(!src)
+		return -1;
+	if(pImage)
+		pImage->release();
+	pImage=src;
+	src->add_ref();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CImageWindow::destroy()
+{
+	int res = CBaseWindow::destroy();
+	if(pImage){
+		pImage->release();
+		pImage=NULL;
+	}
+	return res;
 }
 //---------------------------------------------------------------------------
 int CImageWindow::load(u8 *src,int w,int h)
@@ -736,7 +814,15 @@ int CImageWindow::load(u8 *src,int w,int h)
 	if(!p)
 		return -2;
 	if(pImage)
-		delete pImage;
+		pImage->release();
 	pImage = p;
 	return p->load(src,w,h);
+}
+//---------------------------------------------------------------------------
+CDialog::CDialog() : CContainerWindow()
+{
+}
+//---------------------------------------------------------------------------
+CDialog::~CDialog()
+{
 }

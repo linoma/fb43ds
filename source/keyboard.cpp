@@ -100,14 +100,19 @@ int CKeyboard::onTouchEvent(touchPosition *p,u32 flags)
 		c = keyboard_Hit[x+(y*32)];
 	else
 		c = keyboard_Hit_Shift[x+(y*32)];
-	if(!(flags&4))
+	if(!(flags & 4))
 		return -4;
-	if(c == CAP){
-		status |= 2;		
+	if(status & 4){
+		status &= ~6;
 		desk->Invalidate();
 	}
-	else if(c == SHF){
-		status ^= 2;
+	if(c == CAP){
+		status |= 2;
+		status &= ~4;
+		desk->Invalidate();
+	}
+	else if(c == SHF && (status & 6) == 0){
+		status |= 2|4;
 		desk->Invalidate();
 	}
 	else if(win != NULL)

@@ -19,4 +19,13 @@ extern u8 font1Data[];
 extern charDesc_s font1Desc[];
 extern font_s fontDefault;
 
+extern u8 RobotoData[];
+extern u8 robotoSmallData[];
+
+extern charDesc_s RobotoDesc[];
+extern charDesc_s robotoSmallDesc[];
+
+extern font_s fontBlackHeader;
+extern font_s fontBlackSubHeader;
+
 #endif
