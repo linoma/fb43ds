@@ -8,6 +8,7 @@
 #include "gfxdraw.h"
 #include "gfxtext.h"
 #include "fb4_logo_bin.h"
+#include "fb.h"
 
 CTopDesktop *top;
 CBottomDesktop *bottom;
@@ -29,21 +30,6 @@ int gui_init()
 //---------------------------------------------------------------------------
 int gui_destroy()
 {
-	return 0;
-}
-//---------------------------------------------------------------------------
-int widgets_draws()
-{
-	u8 *fb;
-	
-	fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL,NULL);
-	top->draw(fb);
-	fb = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, NULL,NULL);
-	bottom->draw(fb);
-	
-	top->IncrementTimers();
-	bottom->IncrementTimers();
-	
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -341,7 +327,7 @@ int CLoaderWindow::Show()
 			loader->create(194,104,32,32,-1);
 			loader->load(loader_img);
 			add(loader);
-			((CDesktop *)parent)->SetTimer(loader);
+			fb->SetTimer(loader);
 		}
 		loader->Start();
 	}

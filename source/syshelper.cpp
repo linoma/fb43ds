@@ -27,16 +27,17 @@ void CSysHelper::onMain()
 		svcWaitSynchronization(ev[0],U64_MAX);
 		svcClearEvent(ev[0]);
 		if(pfn_SysFunc){
-			result = pfn_SysFunc(0);
+			result = pfn_SysFunc(param);
 			pfn_SysFunc = NULL;
 		}
 		svcSignalEvent(ev[1]);
 	}
 }
 //---------------------------------------------------------------------------
-int CSysHelper::set_Worker(LPDEFFUNC fn)
+int CSysHelper::set_Worker(LPDEFFUNC fn,u32 arg0)
 {
-	pfn_SysFunc=fn;
+	pfn_SysFunc = fn;
+	param = arg0;
 	svcSignalEvent(ev[0]);
 	return 0;
 }

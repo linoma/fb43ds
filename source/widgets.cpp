@@ -8,6 +8,8 @@
 #include "gfxdraw.h"
 #include "gfxtext.h"
 #include "gui.h"
+#include "fb.h"
+#include "utils.h"
 
 //---------------------------------------------------------------------------
 CCursor::CCursor(CContainerWindow *w) : CAnimation(500000000)
@@ -148,14 +150,9 @@ int CBaseWindow::fire_event(const char *key)
 //---------------------------------------------------------------------------
 int CBaseWindow::set_Events(char *key,void *value)
 {
-	std::string s;
-	
 	if(!key || !key[0])
 		return -1;
-	s = "";
-	for(;*key != 0;key++)
-		s += tolower(*key);
-	events[s] = value;
+	events[strtolower(key)] = value;
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -405,13 +402,6 @@ u8 *CDesktop::get_Buffer()
 	return gfxGetFramebuffer(scr,GFX_LEFT,NULL,NULL);
 }
 //---------------------------------------------------------------------------
-int CDesktop::IncrementTimers()
-{
-	for (std::vector<CTimer *>::iterator t = timers.begin(); t != timers.end(); ++t)
-		(*t)->onCounter();
-	return 0;
-}
-//---------------------------------------------------------------------------
 int CDesktop::onTouchEvent(touchPosition *p,u32 flags)
 {
 	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
@@ -454,31 +444,13 @@ int CDesktop::onKeysUpEvent(u32 press)
 	return -1;
 }
 //---------------------------------------------------------------------------	
-int CDesktop::SetTimer(CTimer *p)
-{
-	if(p == NULL)
-		return -1;
-	for (std::vector<CTimer *>::iterator t = timers.begin(); t != timers.end(); ++t){
-		if((*t) == p)
-			return -2;
-	}		
-	timers.push_back(p);
-	return 0;
-}
-//---------------------------------------------------------------------------	
-int CDesktop::SetTimer(LPDEFFUNC f,u64 val,u32 p)
-{
-	CTimer *t = new CTimer(f,val,p);	
-	return SetTimer(t);
-}
-//---------------------------------------------------------------------------	
 int CDesktop::ShowCursor(CBaseWindow *w,int x,int y)
 {
 	if(cursor == NULL){
 		cursor = new CCursor(this);
 		if(cursor == NULL)
 			return -1;
-		SetTimer(cursor);
+		fb->SetTimer(cursor);
 	}
 	cursor->Show(w,x,y);
 	return 0;

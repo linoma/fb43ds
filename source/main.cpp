@@ -11,8 +11,6 @@ u32* gpuDOut = (u32*)0x1F370800;
 
 extern LPDEFFUNC pfn_State;
 
-extern int widgets_draws();
-
 int main(int argc, char** argv)
 {
 	touchPosition lastTouch,lt;
@@ -66,7 +64,7 @@ int main(int argc, char** argv)
 		}
 		if(pfn_State)
 			pfn_State(0);
-		widgets_draws();
+		CFBClient::onMainLoop();
 		gfxFlushBuffers();
 		gfxSwapBuffers();
 		gspWaitForVBlank();

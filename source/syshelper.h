@@ -13,12 +13,12 @@ public:
 	int Initialize();
 	int Destroy();
 	int is_Busy();
-	int set_Worker(LPDEFFUNC fn); 
+	int set_Worker(LPDEFFUNC fn,u32 arg0 = 0); 
 	int get_Result(){return result;};
 protected:
 	Handle ev[2],thread;
 	u8 stack[0x8000] __attribute__((aligned(8)));
-	u32 status;
+	u32 status,param;
 	int result;
 	LPDEFFUNC pfn_SysFunc;
 };

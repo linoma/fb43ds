@@ -95,9 +95,6 @@ public:
 	virtual int onTouchEvent(touchPosition *p,u32 flags=0);
 	int onKeysPressEvent(u32 press);
 	int onKeysUpEvent(u32 press);	
-	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
-	int SetTimer(CTimer *p);
-	int IncrementTimers();
 	virtual int ShowCursor(CBaseWindow *w,int x,int y);
 	virtual int HideCursor();
 	virtual int SetCursorPos(int x,int y);
@@ -111,7 +108,6 @@ protected:
 	int onActivateWindow(CBaseWindow *win);
 	CBaseWindow *a_win,*dlg_win;
 	CCursor *cursor;
-	std::vector<CTimer *>timers;	
 };
 //---------------------------------------------------------------------------
 class CWindow : public CBaseWindow {
