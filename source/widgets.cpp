@@ -571,7 +571,7 @@ int CButton::draw(u8 *screen)
 {
 	if(is_invalidate())
 		return -1;
-	gfxGradientFillRect(&rcWin,0,1,0xFFDDDDDD,bkcolor,screen);
+	gfxGradientFillRect(&rcWin,5,1,0xFFDDDDDD,bkcolor,screen);
 	gfxRect(&rcWin,0x80aaaaaa,screen);
 	if(text){
 		gfxSetTextColor(color);
@@ -591,7 +591,7 @@ int CButton::onKeysPressEvent(u32 press)
 //---------------------------------------------------------------------------
 CStatusBar::CStatusBar() : CContainerWindow()
 {
-	bkcolor = 0xFF0000a0;
+	bkcolor = 0xFF3c5998;
 }
 //---------------------------------------------------------------------------
 CStatusBar::~CStatusBar()
@@ -601,7 +601,7 @@ CStatusBar::~CStatusBar()
 int CStatusBar::EraseBkgnd(u8 *screen)
 {
 	if(!is_invalidate()){
-		gfxGradientFillRect(&rcWin,0,1,0xFF3a5795,bkcolor,screen);
+		gfxGradientFillRect(&rcWin,0,1,0xFF4e69a2,bkcolor,screen);
 		return 0;
 	}
 	return -1;
@@ -759,7 +759,7 @@ int CImageWindow::load(CImage *src)
 		return -1;
 	if(pImage)
 		pImage->release();
-	pImage=src;
+	pImage = src;
 	src->add_ref();
 	return 0;
 }
@@ -793,8 +793,62 @@ int CImageWindow::load(u8 *src,int w,int h)
 //---------------------------------------------------------------------------
 CDialog::CDialog() : CContainerWindow()
 {
+	bkcolor = 0xFFDDDDDD;
 }
 //---------------------------------------------------------------------------
 CDialog::~CDialog()
 {
+}
+//---------------------------------------------------------------------------
+CToolBar::CToolBar() : CContainerWindow()
+{
+	bkcolor = 0xFFc0c0c0;
+}
+//---------------------------------------------------------------------------
+CToolBar::~CToolBar()
+{
+}
+//---------------------------------------------------------------------------
+CToolButton::CToolButton()
+{
+	bkcolor = 0xFFb0b0b0;
+}
+//---------------------------------------------------------------------------
+int CToolButton::load(CImage *img,int idx)
+{
+	if(CImageWindow::load(img))
+		return -1;
+	int w = pImage->get_Width();
+	int h = pImage->get_Height();
+	if(w>h){
+		rcImage.left=idx*h;
+		rcImage.top=0;
+		rcImage.right=rcImage.left+h;
+		rcImage.bottom=rcImage.top+h;
+	}
+	else{
+		rcImage.left=0;
+		rcImage.top=idx*w;
+		rcImage.right=rcImage.left+w;
+		rcImage.bottom=rcImage.top+w;
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CToolButton::draw(u8 *screen)
+{
+	int x,y,w,h;
+	
+	if(is_invalidate())
+		return -1;	
+	gfxGradientFillRect(&rcWin,5,1,0xFFDDDDDD,bkcolor,screen);
+	//gfxRect(&rcWin,0x80aaaaaa,screen);
+	//gfxFillRoundRect(&rcWin,4,0xff404040,bkcolor,screen);
+	if(!pImage)
+		return 0;
+	w = rcImage.right-rcImage.left;
+	h = rcImage.bottom-rcImage.top;
+	x = rcWin.left + (((rcWin.right - rcWin.left) - w) >> 1);
+	y = rcWin.top + (((rcWin.bottom - rcWin.top) - h) >> 1);
+	return pImage->draw(screen,x,y,w,h,rcImage.left,rcImage.top);
 }

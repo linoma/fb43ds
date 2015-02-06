@@ -7,6 +7,7 @@
 #include "syshelper.h"
 #include "fb.h"
 #include "loader_bin.h"
+#include "toolbar_bin.h"
 #include "utils.h"
 
 LPDEFFUNC pfn_State = NULL;
@@ -16,11 +17,41 @@ FS_archive sdmcArchive;
 CFBClient *fb;
 static unsigned char fb_char_test[] = {"€,´,€,´,水,Д,Є"};
 //---------------------------------------------------------------------------
+static int on_show_console(CBaseWindow *w)
+{
+	bottom->ShowDialog(console);
+	return 0;
+}
+//---------------------------------------------------------------------------
+static int fb_authenticate(u32 arg0)
+{
+	if(!sys_helper || sys_helper->is_Busy())
+		return -1;
+	top->HideDialog();
+	if(sys_helper->get_Result())
+		return -2;		
+	for(int i=0;i<6;i++)
+		bottom->remove(i);
+	CToolBar *b = new CToolBar();
+	b->create(0,0,320,30,1);		
+	b->set_BkColor(0x00c0c0c0);
+	
+	CToolButton *c = new CToolButton();
+	c->create(0,0,22,22,1);
+	c->load(toolbar_img,12);
+	b->add(c);
+	b->set_Events("clicked",(void *)on_show_console);
+	bottom->add(b);
+	bottom->HideDialog();
+	return 0;
+}
+//---------------------------------------------------------------------------
 static int sys_login(u32 arg0)
 {
 	char s[90],s1[90];
 	int ret;
 	
+	print("Authenticating...");
 	CWebRequest *req = new CWebRequest();	
 	if(req == NULL)
 		return -1;
@@ -59,6 +90,7 @@ static int sys_login(u32 arg0)
 		char *p;
 		u32 code;
 		
+		ret = -100;		
 		if(!req->get_statuscode(&code)){
 			len = req->get_responseheader("Set-Cookie",NULL,0);
 			if(len && (p = (char *)malloc(1+len)) != NULL){
@@ -66,13 +98,18 @@ static int sys_login(u32 arg0)
 				fb->set_Cookies(p);
 				free(p);
 			}
+			ret--;
 			len = fb->get_Cookie("c_user",s1,50);
-			printd("c_user %d %s",len,s1);		
+			if(len)
+				ret = 0;
 		}
 	}
-	print("login %d",ret);
+	if(!ret)
+		print("ok");
+	else
+		print("error %d",ret);
 	delete req;
-	return -1;
+	return ret;
 }
 //---------------------------------------------------------------------------
 static int on_clicked_login(CBaseWindow *w)
@@ -86,12 +123,16 @@ static int on_clicked_login(CBaseWindow *w)
 	b = bottom->get_Window(2);
 	b->get_Text(email,30);
 	b = bottom->get_Window(4);
-	b->get_Text(pass,30);	
+	b->get_Text(pass,30);
+	bottom->ShowDialog(console);	
 /*	if(!email[0] || !pass[0]){
-		bottom->ShowDialog(console);		
 		print("Error !!!");
 		return -1;
 	}*/
+	fb->set_Email(email);
+	fb->set_Password(pass);
+	pfn_State = fb_authenticate;
+	top->ShowDialog(loaderDlg);	
 	sys_helper->set_Worker(sys_login);
 	return 0;
 }
@@ -114,6 +155,7 @@ static int fb_login(u32 arg0)
 	
 	b = new CEditText();
 	b->create(115,20,110,20,2);	
+	b->set_Text((char *)fb->get_Email());
 	bottom->add(b);
 	
 	b = new CLabel("Password");
@@ -123,6 +165,7 @@ static int fb_login(u32 arg0)
 	
 	b = new CEditText();
 	b->create(115,45,110,20,4);	
+	b->set_Text((char *)fb->get_Password());	
 	bottom->add(b);
 	
 	b = new CButton("Connect");
@@ -140,6 +183,7 @@ static int sys_init(u32 arg0)
 	int ret;
 	
 	loader_img->load((u8 *)loader_bin);	
+	toolbar_img->load((u8 *)toolbar_bin);	
 	top->init();
 	bottom->init();
 	print("\nrequesting...");
@@ -216,7 +260,7 @@ int CFBClient::Destroy()
 	}
 	if(fb){
 		delete fb;
-		fb=0;
+		fb = NULL;
 	}
 	return 0;
 }
@@ -271,7 +315,7 @@ int CFBClient::set_Email(char *str)
 	return 0;
 }
 //---------------------------------------------------------------------------	
-int CFBClient::setPassword(char *str)
+int CFBClient::set_Password(char *str)
 {
 	if(!str)
 		return -1;
@@ -281,6 +325,8 @@ int CFBClient::setPassword(char *str)
 //---------------------------------------------------------------------------	
 int CFBClient::add_Cookie(char *key,char *value)
 {
+	if(!key || !*key || !value || !*value)
+		return -1;
 	cookies[key]=value;
 	return 0;
 }

@@ -56,7 +56,6 @@ public:
 	int ShowCursor(CBaseWindow *w,int x,int y);
 	int HideCursor();
 protected:
-	int EraseBkgnd(u8 *screen);
 	CKeyboard *keyboard;
 };
 
@@ -77,6 +76,7 @@ extern CTopDesktop *top;
 extern CBottomDesktop *bottom;
 extern CConsoleWindow *console;
 extern CImage *loader_img;
+extern CImage *toolbar_img;
 extern CLoaderWindow *loaderDlg;
 
 #define print console->printf

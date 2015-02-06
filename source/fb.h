@@ -25,7 +25,7 @@ public:
 	const char *get_Email(){return email.c_str();};
 	const char *get_Password(){return pass.c_str();};
 	int set_Email(char *str);
-	int setPassword(char *str);
+	int set_Password(char *str);
 protected:
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
 	std::vector<CTimer *>timers;

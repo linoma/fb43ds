@@ -13,7 +13,7 @@
 CTopDesktop *top;
 CBottomDesktop *bottom;
 CConsoleWindow *console;
-CImage *loader_img;
+CImage *loader_img,*toolbar_img;
 CLoaderWindow *loaderDlg;
 //---------------------------------------------------------------------------
 int gui_init()
@@ -22,6 +22,7 @@ int gui_init()
 	bottom = new CBottomDesktop();
 	console = new CConsoleWindow();
 	loader_img = new CImageGif();
+	toolbar_img = new CImageGif();
 	loaderDlg = new CLoaderWindow();
 	console->create(20,20,280,200,-1);	
 	bottom->ShowDialog(console);
@@ -80,15 +81,6 @@ int CTopDesktop::EraseBkgnd(u8 *screen)
 	return -1;
 }
 //---------------------------------------------------------------------------
-int CBottomDesktop::EraseBkgnd(u8 *screen)
-{
-	if(!is_invalidate()){
-		gfxGradientFillRect(&rcWin,0,1,0xFFFFFFFF,bkcolor,screen);
-		return 0;
-	}
-	return -1;
-}
-//---------------------------------------------------------------------------
 int CBottomDesktop::draw(u8 *screen)
 {
 	int i = CDesktop::draw(screen);
@@ -100,12 +92,9 @@ int CBottomDesktop::draw(u8 *screen)
 CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
 {
 	//bkcolor = 0xFF3a5795;
-	bkcolor=0xFFd3d8e8;
+	bkcolor = 0xFFFFFFFF;//0xFFe9eaed;
 	keyboard = new CKeyboard();
 	
-	CContainerWindow *c = new CStatusBar();	
-	c->create(0,rcWin.bottom-20,rcWin.right,20,-1);		
-	add(c);
 }
 //---------------------------------------------------------------------------
 CBottomDesktop::~CBottomDesktop()

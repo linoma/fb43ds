@@ -28,9 +28,8 @@ char *strtolower(char *s)
 {
 	if(!s || !s[0])
 		return s;
-	char *p = s;
-	while(*p != 0)
-		*p++ = tolower(*p);
+	for(char *p=s;*p != 0;p++)
+		*p = tolower(*p);
 	return s;
 }
 //---------------------------------------------------------------------------	
@@ -38,9 +37,8 @@ char *strtoupper(char *s)
 {
 	if(!s || !s[0])
 		return s;
-	char *p = s;
-	while(*p != 0)
-		*p++ = toupper(*p);
+	for(char *p=s;*p != 0;p++)
+		*p = toupper(*p);
 	return s;
 }	
 //---------------------------------------------------------------------------

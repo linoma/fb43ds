@@ -135,6 +135,15 @@ protected:
 	CImage *pImage;
 };
 //---------------------------------------------------------------------------
+class CToolButton : public CImageWindow{
+public:
+	CToolButton();
+	virtual int draw(u8 *screen);
+	virtual int load(CImage *img,int idx);
+protected:
+	RECT rcImage;
+};
+//---------------------------------------------------------------------------
 class CButton : public CBaseWindow{
 public:
 	CButton(char *c);
@@ -202,7 +211,7 @@ public:
 class CToolBar : public CContainerWindow{
 public:
 	CToolBar();
-	virtual ~CToolBar(){};
+	virtual ~CToolBar();
 };
 
 #endif
