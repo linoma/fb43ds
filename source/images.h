@@ -18,7 +18,7 @@ protected:
 	LPDEFFUNC fnc;
 	u32 param,status;
 };
-
+//---------------------------------------------------------------------------
 class CAnimation : public CTimer{
 public:
 	CAnimation();
@@ -31,7 +31,7 @@ protected:
 	static int onTimer(u32 param);
 	int frame;
 };
-
+//---------------------------------------------------------------------------
 class CImage{
 public:
 	CImage();

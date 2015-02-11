@@ -12,7 +12,7 @@
 #include "utils.h"
 
 //---------------------------------------------------------------------------
-CCursor::CCursor(CContainerWindow *w) : CAnimation(500000000)
+CCursor::CCursor(CContainerWindow *w) : CAnimation(500)
 {
 	desk = w;
 	win = NULL;
@@ -350,6 +350,7 @@ int CContainerWindow::add(CBaseWindow *w)
 	wins.push_back(w);
 	w->set_Parent(this);
 	w->set_Pos(rcWin.left+rc.left,rcWin.top+rc.top);
+	recalc_layout();
 	Invalidate();
 	return 0;
 }
@@ -383,6 +384,11 @@ CBaseWindow * CContainerWindow::get_Window(u32 id)
 			return (*win);
 	}
 	return NULL;
+}
+//---------------------------------------------------------------------------
+int CContainerWindow::recalc_layout()
+{
+	return 0;
 }
 //---------------------------------------------------------------------------
 CDesktop::CDesktop(gfxScreen_t s) : CContainerWindow(s)
@@ -571,7 +577,7 @@ int CButton::draw(u8 *screen)
 {
 	if(is_invalidate())
 		return -1;
-	gfxGradientFillRect(&rcWin,5,1,0xFFDDDDDD,bkcolor,screen);
+	gfxGradientFillRect(&rcWin,0,1,0xFFDDDDDD,bkcolor,screen);
 	gfxRect(&rcWin,0x80aaaaaa,screen);
 	if(text){
 		gfxSetTextColor(color);
@@ -649,6 +655,12 @@ int CEditText::draw(u8 *screen)
 		}
 	}
 	return res;
+}
+//---------------------------------------------------------------------------
+int CEditText::onKeysPressEvent(u32 press)
+{
+	
+	return -1;
 }
 //---------------------------------------------------------------------------
 int CEditText::HideCursor()
@@ -802,16 +814,52 @@ CDialog::~CDialog()
 //---------------------------------------------------------------------------
 CToolBar::CToolBar() : CContainerWindow()
 {
-	bkcolor = 0xFFc0c0c0;
+	bkcolor = 0xFF909090;
 }
 //---------------------------------------------------------------------------
 CToolBar::~CToolBar()
 {
 }
 //---------------------------------------------------------------------------
-CToolButton::CToolButton()
+int CToolBar::recalc_layout()
 {
-	bkcolor = 0xFFb0b0b0;
+	RECT rc;
+	int x,y;
+	
+	x = 2;
+	y = rcWin.bottom-rcWin.top;
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		(*win)->get_WindowRect(&rc);
+		rc.right -= rc.left;
+		rc.bottom -= rc.top;		
+		(*win)->set_Pos(x,rcWin.top + ((y - rc.bottom) >> 1));
+		x += rc.right + 2;		
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CToolBar::EraseBkgnd(u8 *screen)
+{
+	if(is_invalidate())
+		return -1;
+	gfxGradientFillRect(&rcWin,0,1,0xFFc0c0c0,bkcolor,screen);
+	gfxLine(rcWin.left,rcWin.bottom-1,rcWin.right,rcWin.bottom-1,0x80a0a0a0,screen);
+	gfxLine(rcWin.left,rcWin.bottom,rcWin.right,rcWin.bottom,0x80404040,screen);
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CToolBar::onTouchEvent(touchPosition *p,u32 flags)
+{
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		if(!(*win)->onTouchEvent(p,flags))
+			return 0;
+	}
+	return -1;
+}
+//---------------------------------------------------------------------------
+CToolButton::CToolButton() : CImageWindow()
+{
+	bkcolor = 0x00b0b0b0;
 }
 //---------------------------------------------------------------------------
 int CToolButton::load(CImage *img,int idx)
@@ -821,16 +869,16 @@ int CToolButton::load(CImage *img,int idx)
 	int w = pImage->get_Width();
 	int h = pImage->get_Height();
 	if(w>h){
-		rcImage.left=idx*h;
-		rcImage.top=0;
-		rcImage.right=rcImage.left+h;
-		rcImage.bottom=rcImage.top+h;
+		rcImage.left = idx*h;
+		rcImage.top = 0;
+		rcImage.right = rcImage.left+h;
+		rcImage.bottom = rcImage.top+h;
 	}
 	else{
-		rcImage.left=0;
-		rcImage.top=idx*w;
-		rcImage.right=rcImage.left+w;
-		rcImage.bottom=rcImage.top+w;
+		rcImage.left = 0;
+		rcImage.top = idx*w;
+		rcImage.right = rcImage.left+w;
+		rcImage.bottom = rcImage.top+w;
 	}
 	return 0;
 }
@@ -839,11 +887,8 @@ int CToolButton::draw(u8 *screen)
 {
 	int x,y,w,h;
 	
-	if(is_invalidate())
+	if(CBaseWindow::draw(screen))
 		return -1;	
-	gfxGradientFillRect(&rcWin,5,1,0xFFDDDDDD,bkcolor,screen);
-	//gfxRect(&rcWin,0x80aaaaaa,screen);
-	//gfxFillRoundRect(&rcWin,4,0xff404040,bkcolor,screen);
 	if(!pImage)
 		return 0;
 	w = rcImage.right-rcImage.left;

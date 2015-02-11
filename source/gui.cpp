@@ -213,7 +213,7 @@ int CConsoleWindow::printf(char *fmt,...)
 	return 0;
 }
 //---------------------------------------------------------------------------
-CLoader::CLoader() : CImageWindow(),CAnimation(400000000)
+CLoader::CLoader() : CImageWindow(),CAnimation(250)
 {
 }
 //---------------------------------------------------------------------------
@@ -221,7 +221,7 @@ int CLoader::onTimer()
 {
 	frame++;
 	if(pImage != NULL){
-		if(frame*32 >= pImage->get_Height())
+		if(frame*66 >= pImage->get_Width())
 			frame = 0;
 		Invalidate();
 	}
@@ -251,10 +251,10 @@ int CLoader::draw(u8 *screen)
 	CBaseWindow::draw(screen);
 	w = rcWin.right - rcWin.left;
 	h = rcWin.bottom - rcWin.top;
-	return pImage->draw(screen,rcWin.left,rcWin.top,w,h,0,frame*32);
+	return pImage->draw(screen,rcWin.left,rcWin.top,w,h,frame*66,0);
 }
 //---------------------------------------------------------------------------
-CClock::CClock() : CLabel("clock"),CAnimation(900000000)
+CClock::CClock() : CLabel("clock"),CAnimation(900)
 {
 }
 //---------------------------------------------------------------------------
@@ -313,7 +313,7 @@ int CLoaderWindow::Show()
 	if(!CDialog::Show()){
 		if(loader == NULL){
 			loader = new CLoader();
-			loader->create(194,104,32,32,-1);
+			loader->create(162,72,66,66,-1);
 			loader->load(loader_img);
 			add(loader);
 			fb->SetTimer(loader);

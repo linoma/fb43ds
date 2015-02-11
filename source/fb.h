@@ -16,6 +16,7 @@ public:
 	static int Destroy();
 	static int onTouchEvent(touchPosition *p,u32 flags);
 	static int onMainLoop();
+	static int get_post_form_id(u32 arg0);
 	int SetTimer(CTimer *p);
 	int onTimersLoop();
 	int set_Cookies(char *str);
@@ -26,11 +27,16 @@ public:
 	const char *get_Password(){return pass.c_str();};
 	int set_Email(char *str);
 	int set_Password(char *str);
+	int Main(u32 arg0);
+	int onClicked(u32 id);
+	int onTimers(u32 id);
+	int on_get_post_form_id(u8 *data,u32 size);
 protected:
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
 	std::vector<CTimer *>timers;
 	std::map<std::string,std::string>cookies;
 	std::string email,pass;
+	int mode;
 };
 extern CFBClient *fb;
 #endif

@@ -1,5 +1,6 @@
 #include <3ds.h>
 #include "types.h"
+#include <queue>
 
 #ifndef __CSYSHELPER__
 #define __CSYSHELPER__
@@ -13,13 +14,14 @@ public:
 	int Initialize();
 	int Destroy();
 	int is_Busy();
-	int set_Worker(LPDEFFUNC fn,u32 arg0 = 0); 
-	int get_Result(){return result;};
+	int set_Worker(u32 command,u32 size,...); 
+	int set_Result(u32 command,u32 size,...); 
+	int get_Result(u32 *buf,u32 size);
 protected:
-	Handle ev[2],thread;
+	Handle ev[2],thread,mutex;
 	u8 stack[0x8000] __attribute__((aligned(8)));
-	u32 status,param;
+	u32 status;
 	int result;
-	LPDEFFUNC pfn_SysFunc;
+	std::queue<u32> workers,results;
 };
 #endif

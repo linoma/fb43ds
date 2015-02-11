@@ -39,7 +39,7 @@ int CImageGif::get_pixel(u32 *ret,int f,int flags)
 	int idx;
 	
 	idx = *bd;
-	*ret = idx == bk_idx ? 0 : 0xff000000;
+	*ret = idx == bk_idx ? 0 : (alpha << 24);
 	*ret |= palette[*bd];
 	bd+= width;
 	return 0;

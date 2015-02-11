@@ -8,6 +8,7 @@
 #ifndef __WIDGETSH__
 #define __WIDGETSH__
 
+//---------------------------------------------------------------------------
 class CBaseWindow {
 public:
 	CBaseWindow();
@@ -48,7 +49,7 @@ protected:
 	font_s *font;
 	std::map<std::string,void *>events;
 };
-
+//---------------------------------------------------------------------------
 class CContainerWindow : public CBaseWindow{
 public:
 	CContainerWindow();
@@ -60,12 +61,13 @@ public:
 	virtual int draw(u8 *screen);
 	virtual int Invalidate(int flags=0);
 	CBaseWindow *get_Window(u32 id);
+	virtual int recalc_layout();
 protected:
 	virtual int EraseBkgnd(u8 *screen);
 	std::vector<CBaseWindow *>wins;
 	u32 bktcolor;
 };
-
+//---------------------------------------------------------------------------
 class CCursor : public CAnimation {
 public:
 	CCursor(CContainerWindow *w);
@@ -81,13 +83,13 @@ protected:
 	POINT pos;
 	SIZE sz;
 };
-
+//---------------------------------------------------------------------------
 class CDialog : public CContainerWindow {
 public:
 	CDialog();
 	virtual ~CDialog();
 };
-
+//---------------------------------------------------------------------------
 class CDesktop : public CContainerWindow {
 public:
 	CDesktop(gfxScreen_t s);
@@ -188,6 +190,7 @@ public:
 	int onActivate(int v);
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
 	virtual int onCharEvent(u8 c);
+	virtual int onKeysPressEvent(u32 press);
 protected:
 	int HideCursor();
 	int ShowCursor(int x,int y);
@@ -212,6 +215,10 @@ class CToolBar : public CContainerWindow{
 public:
 	CToolBar();
 	virtual ~CToolBar();
+	virtual int recalc_layout();
+	virtual int onTouchEvent(touchPosition *p,u32 flags=0);	
+protected:
+	int EraseBkgnd(u8 *screen);
 };
 
 #endif

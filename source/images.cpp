@@ -1,4 +1,5 @@
 #include "images.h"
+#include "utils.h"
 
 //---------------------------------------------------------------------------
 CImage::CImage()
@@ -7,7 +8,7 @@ CImage::CImage()
 	width = height = 0;
 	alpha = 255;
 	bd = NULL;
-	refs=1;
+	refs = 1;
 }
 //---------------------------------------------------------------------------
 CImage::~CImage()
@@ -55,7 +56,7 @@ int CImage::begin_draw(int x,int y)
 //---------------------------------------------------------------------------
 int CImage::get_pixel(u32 *ret,int f,int flags)
 {
-	*ret = 0xFF000000;
+	*ret = (alpha << 24);
 	*ret |= RGB(bd[0],bd[1],bd[2]);	
 	bd += width * 3;
 	return 0;
@@ -80,8 +81,8 @@ int CImage::draw(u8 *dst,int x,int y,int w,int h,int x0,int y0)
 			if((col >> 24) == 0)
 				continue;
 			p[0] = col;
-			p[1] = col >>8;
-			p[2] = col >>16;
+			p[1] = col >> 8;
+			p[2] = col >> 16;
 		}
 		dst += 240*3;
 	}
@@ -91,7 +92,7 @@ int CImage::draw(u8 *dst,int x,int y,int w,int h,int x0,int y0)
 CTimer::CTimer(LPDEFFUNC f,u64 i,u32 p)
 {
 	elapsed = 0;
-	interval = i;
+	interval = 268123.480 * i;
 	fnc = f;
 	param = p;
 	status = 0;
@@ -100,12 +101,14 @@ CTimer::CTimer(LPDEFFUNC f,u64 i,u32 p)
 //---------------------------------------------------------------------------
 int CTimer::onCounter()
 {
+	u64 val;
+	
 	if((status & 1) == 0)
 		return -1;
-	elapsed += svcGetSystemTick();
-	if(elapsed >= interval){
-		while(elapsed >=interval)
-			elapsed -= interval;
+	val = svcGetSystemTick();
+	u64 dt = val - elapsed;
+	if(dt >= interval){
+		elapsed = val;
 		if(fnc != NULL)
 			fnc(param);
 	}
@@ -129,7 +132,7 @@ int CTimer::set_Enabled(int v)
 	return 0;
 }
 //---------------------------------------------------------------------------
-CAnimation::CAnimation() : CTimer(onTimer,200000000,(u32)this)
+CAnimation::CAnimation() : CTimer(onTimer,200,(u32)this)
 {
 	set_Enabled(0);
 	frame = 0;
