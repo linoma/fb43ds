@@ -1,4 +1,4 @@
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <3ds.h>
@@ -31,13 +31,8 @@ static int fb_authenticate(u32 arg0)
 {
 	u32 val,*p;
 
-	if(!sys_helper || sys_helper->is_Busy())
-		return -1;
 	top->HideDialog();
 	
-//	if(sys_helper->get_Result())
-//		return -2;		
-		
 	for(int i=0;i<6;i++)
 		bottom->remove(i);
 	CToolBar *b = new CToolBar();
@@ -68,18 +63,15 @@ static int fb_authenticate(u32 arg0)
 	b->add(c);
 	c->set_Events("clicked",(void *)on_clicked_button);
 	bottom->add(b);
-
-	pfn_State = fb_main;
-		
-	bottom->HideDialog();
 	return 0;
 }
 //---------------------------------------------------------------------------
 static int sys_login(u32 arg0)
 {
-	char s[90],s1[90];
+	char s[90],s1[90],*_buf;
 	int ret;
 	
+	_buf = NULL;
 	print("Authenticating...");
 	CWebRequest *req = new CWebRequest();	
 	if(req == NULL)
@@ -112,7 +104,7 @@ static int sys_login(u32 arg0)
     req->add_postdata("login","Login");
 	req->add_postdata("charset_test",s);
     req->add_postdata("lsd","abcde");
-	ret = req->send(CWebRequest::RQ_POST);
+	ret = req->send(CWebRequest::RQ_POST|CWebRequest::RQ_DEBUG);
 	
 	if(!ret){
 		int len;
@@ -129,8 +121,11 @@ static int sys_login(u32 arg0)
 			}
 			ret--;
 			len = fb->get_Cookie("c_user",s1,50);
-			if(len)
+			if(len){
+				_buf = (char *)linearAlloc(len+10);
+				strcpy(_buf,s1);
 				ret = 0;
+			}
 		}
 	}
 	if(!ret)
@@ -138,7 +133,8 @@ static int sys_login(u32 arg0)
 	else
 		print("error %d",ret);
 	delete req;
-	sys_helper->set_Result(2,1,ret);
+	sys_helper->set_Result(2,2,ret,_buf);
+	printd("8->%s %u",s1,_buf);
 	return ret;
 }
 //---------------------------------------------------------------------------
@@ -161,23 +157,14 @@ static int on_clicked_login(CBaseWindow *w)
 	}*/
 	fb->set_Email(email);
 	fb->set_Password(pass);
-	pfn_State = fb_authenticate;
 	top->ShowDialog(loaderDlg);	
-	sys_helper->set_Worker(2,1,sys_login);
+	sys_helper->set_Job(2,1,sys_login);
 	return 0;
 }
 //---------------------------------------------------------------------------
 static int fb_login(u32 arg0)
 {
 	CBaseWindow *b;
-	
-	if(!sys_helper || sys_helper->is_Busy())
-		return -1;
-	top->HideDialog();
-	
-//	if(sys_helper->get_Result())
-//		return -2;		
-	bottom->HideDialog();
 	
 	b = new CLabel("EMail");
 	b->create(60,20,50,20,1);
@@ -205,7 +192,7 @@ static int fb_login(u32 arg0)
 	bottom->add(b);
 	
 	b->set_Events("clicked",(void *)on_clicked_login);
-	pfn_State = NULL;
+
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -243,23 +230,6 @@ static int sys_init(u32 arg0)
 	return ret;
 }
 //---------------------------------------------------------------------------
-int fb_init(u32 arg0)
-{
-	if(gui_init())
-		return -1;
-	print("Initializing...");			
-	linear_buffer = (u8 *)linearAlloc(0x80000);	
-	if(!linear_buffer)
-		return -2;
-	sys_helper = new CSysHelper();
-	if(!sys_helper || sys_helper->Initialize())
-		return -3;
-	sys_helper->set_Worker(1,1,sys_init);
-	pfn_State = fb_login;
-	print("ok\n");	
-	return 0;
-}
-//---------------------------------------------------------------------------
 CFBClient::CFBClient()
 {
 	email = "";
@@ -276,8 +246,16 @@ int CFBClient::Initialize()
 	fb = new CFBClient();
 	if(!fb)
 		return -1;
+	linear_buffer = (u8 *)linearAlloc(0x80000);	
+	if(!linear_buffer)
+		return -2;
+	sys_helper = new CSysHelper();
+	if(!sys_helper || sys_helper->Initialize())
+		return -3;
 	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-	FSUSER_OpenArchive(NULL, &sdmcArchive);	
+	FSUSER_OpenArchive(NULL, &sdmcArchive);
+	if(gui_init())
+		return -4;	
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -298,28 +276,24 @@ int CFBClient::Destroy()
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CFBClient::onTouchEvent(touchPosition *p,u32 flags)
+int CFBClient::main(u32 arg0)
 {
-	return bottom->onTouchEvent(p,flags);
-}
-//---------------------------------------------------------------------------	
-int CFBClient::onTimersLoop()
-{
-	for (std::vector<CTimer *>::iterator t = timers.begin(); t != timers.end(); ++t)
-		(*t)->onCounter();
-	return 0;
-}
-//---------------------------------------------------------------------------	
-int CFBClient::onMainLoop()
-{
+	int ret;
 	u8 *screen;
 	
+	ret=0;
+	if(fb)
+		ret=fb->Main(arg0);
 	screen = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL,NULL);
 	top->draw(screen);
 	screen = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, NULL,NULL);
 	bottom->draw(screen);	
-	fb->onTimersLoop();
-	return 0;
+	return ret;
+}
+//---------------------------------------------------------------------------
+int CFBClient::onTouchEvent(touchPosition *p,u32 flags)
+{
+	return bottom->onTouchEvent(p,flags);
 }
 //---------------------------------------------------------------------------	
 int CFBClient::SetTimer(CTimer *p)
@@ -420,33 +394,48 @@ static int on_timer(u32 val)
 	return fb->onTimers(val);
 }
 //---------------------------------------------------------------------------	
-int CFBClient::get_post_form_id(u32 arg0)
+int CFBClient::get_buddy_list(u32 arg0)
 {
 	CWebRequest *req;
-	u32 code;
-	int res;
+	u32 code,sz;
+	int res,ret;
 	u8 *_buf;
 		
 	res=-1;
-	_buf=NULL;
+	_buf = NULL;
 	req = new CWebRequest();
 	if(!req)
 		goto fail;
 	res--;
-	req->begin("https://www.facebook.com/presence/popout.php");
+	req->begin("https://www.facebook.com/ajax/chat/buddy_list.php");
+	req->add_postdata("user",fb->get_UserId());
+	req->add_postdata("popped_out","true");
+	req->add_postdata("force_render","true");
+	req->add_postdata("buddy_list","1");
+	req->add_postdata("__a","1");
+	req->add_postdata("fb_dtsg",fb->get_dtsg());
+	req->add_postdata("notifications","1");
+	ret = fb->get_Cookies(NULL,0);
+	if(ret > 0){
+		char *p = (char *)malloc(ret+1);
+		fb->get_Cookies(p,ret);
+		req->add_header("Cookie",p);
+		free(p);
+	}
+	
 	res--;
-	if(req->send())
+	if(req->send(CWebRequest::RQ_DEBUG|CWebRequest::RQ_POST))
 		goto fail;
 	res--;
 	if(req->get_statuscode(&code))
 		goto fail;
 	res--;
-	if(code!=200)
+	if(code != 200)		
 		goto fail;
 	res--;
 	_buf = (u8 *)linearAlloc(0x20000);
-	if(req->download_data((char *)_buf,0x20000,&code))
-		goto fail;
+	if(req->download_data((char *)_buf,0x20000,&sz))
+		goto fail;		
 	res = 0;
 fail:	
 	if(req != NULL)
@@ -455,13 +444,54 @@ fail:
 		linearFree(_buf);
 		_buf=0;
 	}
-	sys_helper->set_Result(3,2,res,_buf);
+	sys_helper->set_Result(4,3,res,_buf,sz);
 	return res;
 }
 //---------------------------------------------------------------------------	
-int CFBClient::on_get_post_form_id(u8 *data,u32 size)
+int CFBClient::go_to_home(u32 arg0)
 {
-	return 0;
+	CWebRequest *req;
+	u32 code,sz;
+	int res,ret;
+	u8 *_buf;
+		
+	res=-1;
+	_buf = NULL;
+	req = new CWebRequest();
+	if(!req)
+		goto fail;
+	res--;
+	req->begin("https://www.facebook.com/index.php");
+	ret = fb->get_Cookies(NULL,0);
+	if(ret > 0){
+		char *p = (char *)malloc(ret+1);
+		fb->get_Cookies(p,ret);
+		req->add_header("Cookie",p);
+		free(p);
+	}	
+	res--;
+	if(req->send(CWebRequest::RQ_DEBUG|CWebRequest::RQ_GET))
+		goto fail;
+	res--;
+	if(req->get_statuscode(&code))
+		goto fail;
+	res--;
+	if(code != 200)		
+		goto fail;
+	res--;
+	_buf = (u8 *)linearAlloc(0x40000);
+	if(req->download_data((char *)_buf,0x40000,&sz))
+		goto fail;		
+	res = 0;
+fail:	
+	if(req != NULL)
+		delete req;
+	if(res && _buf != NULL){
+		linearFree(_buf);
+		_buf=0;
+	}
+	sys_helper->set_Result(3,3,res,_buf,sz);
+	return res;
 }
 //---------------------------------------------------------------------------	
 int CFBClient::Main(u32 arg0)
@@ -469,13 +499,30 @@ int CFBClient::Main(u32 arg0)
 	u32 val,*p;
 	
 	switch(mode){
+		case -1:
+		break;
 		case 0:
+			print("Initializing...");			
+			sys_helper->set_Job(mode+1,1,sys_init);
+			mode=-2;
+		break;
+		case 1:
+			fb_login(0);
+			mode=-2;
+		break;
+		case 2:
+			fb_authenticate(0);
 			SetTimer(on_timer,30000,1);
 			SetTimer(on_timer,180000,2);
-			sys_helper->set_Worker(3,1,get_post_form_id);
-			mode++;
+			sys_helper->set_Job(3,1,go_to_home);
+			mode=-2;
+		break;
+		case 3:
+			sys_helper->set_Job(4,1,get_buddy_list);
 		break;
 	}
+	for (std::vector<CTimer *>::iterator t = timers.begin(); t != timers.end(); ++t)
+		(*t)->onCounter();
 	if(sys_helper->is_Busy())
 		return 0;	
 	val = sys_helper->get_Result(NULL,0);
@@ -483,10 +530,60 @@ int CFBClient::Main(u32 arg0)
 		return 0;
 	p = (u32 *)malloc(val*sizeof(u32));
 	sys_helper->get_Result(p,val);
+	printd("res %u %u %d",p[0],p[1],(int)p[2]);
 	switch(p[1]){
+		case 1:
+			print("ok\n");
+			top->HideDialog();
+			if(p[2])
+				mode = -1;
+			else{
+				bottom->HideDialog();
+				mode = p[1];
+			}
+		break;
+		case 2:
+			print("ok\n");
+			top->HideDialog();
+			if(p[2])
+				mode = -1;
+			else{
+				bottom->HideDialog();
+				mode = p[1];
+			}
+			if(p[3]){
+				strcpy(userid,(char *)p[3]);
+				linearFree((void *)p[3]);
+				printd(userid);
+			}
+		break;
 		case 3:
+			if(p[2]){
+				bottom->ShowDialog(console);
+				mode=-1;
+			}
+			if(p[3]){
+				char *s = strstr((char *)p[3]+2000,"name=\"fb_dtsg\"");
+				
+				if(s != NULL){
+					int i2;
+				
+					s += 15;
+					for(i2=0;*s != '\"';i2++,s++);
+					
+					for(s++,i2=0;*s != '\"';i2++)
+						dtsg[i2] = *s++;
+					dtsg[i2] = 0;					
+					printd("dtsg %s",dtsg);
+					mode=3;
+				}
+				linearFree((void *)p[3]);
+			}
+		break;
+		case 4:
 			if(p[3])
 				linearFree((void *)p[3]);
+			mode=-1;
 		break;
 	}
 	free(p);

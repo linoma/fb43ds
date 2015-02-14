@@ -365,20 +365,22 @@ int CWebRequest::send(int mode)
 	}
 	if(bytesIn < 1)
 		goto send_error;
+#ifdef _DEBUG
+		if(mode & RQ_DEBUG){
+			Handle sram;
+				
+			Result res = FSUSER_OpenFile(NULL,&sram,sdmcArchive,FS_makePath(PATH_CHAR,"/lino.txt"),FS_OPEN_CREATE|FS_OPEN_WRITE,FS_ATTRIBUTE_NONE);
+			if (res == 0){
+				u32 byteswritten = 0;
+				FSFILE_Write(sram, &byteswritten, 0, (u32*)_buf, bytesIn, FS_WRITE_FLUSH);
+				FSFILE_Close(sram);
+			}		
+		}
+#endif
 	res--;//14
 	i = parse_response();
 	if(i < 1)
 		goto send_error;
-	{		
-		Handle sram;
-			
-		Result res = FSUSER_OpenFile(NULL,&sram,sdmcArchive,FS_makePath(PATH_CHAR,"/lino.txt"),FS_OPEN_CREATE|FS_OPEN_WRITE,FS_ATTRIBUTE_NONE);
-		if (res == 0){
-			u32 byteswritten = 0;
-			FSFILE_Write(sram, &byteswritten, 0, (u32*)_buf, bytesIn, FS_WRITE_FLUSH);
-			FSFILE_Close(sram);
-		}
-	}
 	return 0;	
 send_error:
 	destroy();

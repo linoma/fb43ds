@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 	fsInit();
 	srand(svcGetSystemTick());
 	CFBClient::Initialize();
-	pfn_State = fb_init;
+	pfn_State = CFBClient::main;
 	while(aptMainLoop()){
 		hidScanInput();		
 		u32 press = hidKeysDown();
@@ -62,9 +62,7 @@ int main(int argc, char** argv)
 			frame = 0;
 			lp_frame = 0;
 		}
-		if(pfn_State)
-			pfn_State(0);
-		CFBClient::onMainLoop();
+		CFBClient::main(0);
 		gfxFlushBuffers();
 		gfxSwapBuffers();
 		gspWaitForVBlank();

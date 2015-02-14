@@ -30,36 +30,40 @@ void CSysHelper::onMain()
 	
 	while((status & 1) == 0){
 		svcWaitSynchronization(ev[0],U64_MAX);
-		svcClearEvent(ev[0]);
-		while(workers.size()){
+		while(jobs.size()){
 			svcWaitSynchronization(mutex,U64_MAX);
-			size = workers.front();			
-			workers.pop();
-			cmd = workers.front();
-			workers.pop();
+			size = jobs.front();			
+			jobs.pop();
+			cmd = jobs.front();
+			jobs.pop();
 			flags = size >> 16;
 			size = (u32)(u16)size;
 			p = NULL;
 			if(size){
 				if((p = (u32 *)malloc(size*sizeof(u32)))){
 					for(u32 i=0;i<size;i++){
-						p[i] = workers.front();
-						workers.pop();
+						p[i] = jobs.front();
+						jobs.pop();
 					}
 				}
 			}
 			svcReleaseMutex(mutex);
-			switch(cmd){
-				default:
-					fn = (LPDEFFUNC)p[0];
-					if(fn != NULL)
-						fn(0);
-				break;
+			if((flags & 1) == 0){
+				fn = (LPDEFFUNC)p[0];
+				if(fn != NULL)
+					fn(0);
+			}
+			else{
+				switch(cmd){
+					default:
+					break;
+				}
 			}
 			if(p != NULL)
 				free(p);
-		}
-		svcSignalEvent(ev[1]);
+			svcSignalEvent(ev[1]);
+		}		
+		svcClearEvent(ev[0]);
 	}
 }
 //---------------------------------------------------------------------------
@@ -68,11 +72,12 @@ int CSysHelper::get_Result(u32 *buf,u32 size)
 	u32 val,i;
 	
 	svcWaitSynchronization(mutex,U64_MAX);
-	val = results.front() + 1;	
+	val = results.front() + 2;	
 	if(val <= size && buf){
+		val-=2;
 		*buf++ = val;
 		results.pop();
-		*buf++ = val;
+		*buf++ = results.front();
 		results.pop();	
 		for(i=0;i<val;i++){
 			*buf++ = results.front();
@@ -100,18 +105,18 @@ int CSysHelper::set_Result(u32 command,u32 size,...)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CSysHelper::set_Worker(u32 command,u32 size,...)
+int CSysHelper::set_Job(u32 command,u32 size,...)
 {
 	u32 i,val;
 	va_list vl;
     
 	svcWaitSynchronization(mutex,U64_MAX);
-	workers.push(size);
-	workers.push(command);
+	jobs.push(size);
+	jobs.push(command);
 	va_start(vl,size);
 	size = (u32)(u16)size;
 	for(i=0;i<size;i++)
-       workers.push(va_arg(vl,u32));
+       jobs.push(va_arg(vl,u32));
 	va_end(vl); 
 	svcSignalEvent(ev[0]);
 	svcReleaseMutex(mutex);

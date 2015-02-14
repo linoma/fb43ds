@@ -14,7 +14,7 @@ public:
 	int Initialize();
 	int Destroy();
 	int is_Busy();
-	int set_Worker(u32 command,u32 size,...); 
+	int set_Job(u32 command,u32 size,...); 
 	int set_Result(u32 command,u32 size,...); 
 	int get_Result(u32 *buf,u32 size);
 protected:
@@ -22,6 +22,6 @@ protected:
 	u8 stack[0x8000] __attribute__((aligned(8)));
 	u32 status;
 	int result;
-	std::queue<u32> workers,results;
+	std::queue<u32> jobs,results;
 };
 #endif

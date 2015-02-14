@@ -37,11 +37,11 @@ INCLUDES	:=	include
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=softfp
 
-CFLAGS	:=	-g -Wall -O2 -mword-relocations \
+CFLAGS	:=  -g -Wall -O2 -mword-relocations \
 			-fomit-frame-pointer -ffast-math \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -DNO_FILESYSTEM -DNO_WRITEV -DSINGLE_THREADED -DUSE_CYASSL
+CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS -DNO_FILESYSTEM -DNO_WRITEV -DSINGLE_THREADED -DUSE_CYASSL -D_DEBUG
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 

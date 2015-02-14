@@ -29,7 +29,7 @@ public:
 	static int InitializeClient();
 	static int DestroyClient();
 	static int myDateCb(int preverify, CYASSL_X509_STORE_CTX* store);
-	enum {RQ_GET=0,RQ_POST=1,RQ_FORMDATA=2};
+	enum {RQ_GET=0,RQ_POST=1,RQ_FORMDATA=2,RQ_DEBUG=0x10000};
 	
 protected:
 	int destroy();
