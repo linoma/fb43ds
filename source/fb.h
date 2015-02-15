@@ -2,6 +2,7 @@
 #include <vector>
 #include "types.h"
 #include "images.h"
+#include "jsmn.h"
 
 #ifndef __FBH__
 #define __FBH__
@@ -37,11 +38,14 @@ public:
 	char *get_dtsg(){return dtsg;};
 protected:
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
+	int parse_buddy_list(char *js,u32 sz);
 	std::vector<CTimer *>timers;
 	std::map<std::string,std::string>cookies;
 	std::string email,pass;
 	int mode;
 	char *_buffer,dtsg[50],userid[15];
+private:
+	int json_nodes_length(jsmntok_t *t);
 };
 extern CFBClient *fb;
 #endif

@@ -26,6 +26,7 @@ public:
 	int send(int mode=RQ_GET);
 	int close();
 	int download_data(char *buf,u32 size,u32 *ret=NULL);
+	int get_response_length(u32 *ret);
 	static int InitializeClient();
 	static int DestroyClient();
 	static int myDateCb(int preverify, CYASSL_X509_STORE_CTX* store);
@@ -44,7 +45,7 @@ protected:
 	CYASSL_METHOD *method;
 	CYASSL_CTX *ctx;
 	CYASSL *ssl;
-	u32 bytesIn,_postdata_len,_postdata_size;
+	u32 bytesIn,_postdata_len,_postdata_size,_response_len;
 #endif
 public:
 	static u32 client,mem;

@@ -9,6 +9,7 @@
 #include "loader_bin.h"
 #include "toolbar_bin.h"
 #include "utils.h"
+#include "jsmn.h"
 
 LPDEFFUNC pfn_State = NULL;
 CSysHelper *sys_helper = NULL;
@@ -134,7 +135,6 @@ static int sys_login(u32 arg0)
 		print("error %d",ret);
 	delete req;
 	sys_helper->set_Result(2,2,ret,_buf);
-	printd("8->%s %u",s1,_buf);
 	return ret;
 }
 //---------------------------------------------------------------------------
@@ -421,8 +421,7 @@ int CFBClient::get_buddy_list(u32 arg0)
 		fb->get_Cookies(p,ret);
 		req->add_header("Cookie",p);
 		free(p);
-	}
-	
+	}	
 	res--;
 	if(req->send(CWebRequest::RQ_DEBUG|CWebRequest::RQ_POST))
 		goto fail;
@@ -435,7 +434,7 @@ int CFBClient::get_buddy_list(u32 arg0)
 	res--;
 	_buf = (u8 *)linearAlloc(0x20000);
 	if(req->download_data((char *)_buf,0x20000,&sz))
-		goto fail;		
+		goto fail;
 	res = 0;
 fail:	
 	if(req != NULL)
@@ -554,7 +553,6 @@ int CFBClient::Main(u32 arg0)
 			if(p[3]){
 				strcpy(userid,(char *)p[3]);
 				linearFree((void *)p[3]);
-				printd(userid);
 			}
 		break;
 		case 3:
@@ -563,31 +561,84 @@ int CFBClient::Main(u32 arg0)
 				mode=-1;
 			}
 			if(p[3]){
-				char *s = strstr((char *)p[3]+2000,"name=\"fb_dtsg\"");
+				char *s = strstr((char *)p[3],"name=\"fb_dtsg\"");
 				
 				if(s != NULL){
 					int i2;
-				
+					
 					s += 15;
 					for(i2=0;*s != '\"';i2++,s++);
 					
 					for(s++,i2=0;*s != '\"';i2++)
 						dtsg[i2] = *s++;
 					dtsg[i2] = 0;					
-					printd("dtsg %s",dtsg);
 					mode=3;
 				}
 				linearFree((void *)p[3]);
 			}
 		break;
 		case 4:
-			if(p[3])
+			if(p[3]){
+				parse_buddy_list((char *)p[3],p[4]);
 				linearFree((void *)p[3]);
+			}
 			mode=-1;
 		break;
 	}
 	free(p);
 	return 0;
+}
+//---------------------------------------------------------------------------	
+int CFBClient::parse_buddy_list(char *js,u32 sz)
+{
+	int nnodes,res,i,ii;
+	jsmn_parser parser;
+	jsmntok_t *t,*list,*user;
+	
+	write_to_sdmc("/buddylist.txt",(u8 *)js,sz);
+	jsmn_init(&parser);
+	nnodes = jsmn_parse(&parser, js, sz, NULL,0);
+	if(nnodes < 0)
+		return -1;
+	t = (jsmntok_t *)linearAlloc(nnodes * sizeof(jsmntok_t));
+	if(!t)
+		return -2;
+	jsmn_init(&parser);
+	res = jsmn_parse(&parser,js,sz,t,nnodes);
+	for(i=0;i<res;i++){
+       if(t[i].type != JSMN_STRING)
+           continue;
+       if(strncmp(&js[t[i].start],"nowAvailableList",16) == 0)
+           break;
+	}
+	printd("nodes %d %d %d",nnodes,i,res);
+	list = &t[++i];
+	for(ii=1,i=0;i<list->size;i++){
+		user = &list[ii];
+		char *id = &js[user[0].start];
+		{
+			char s[30];
+			int n,nn;
+			
+			for(nn=0,n = user[0].start;n<user[0].end;n++,nn++)
+				s[nn] = id[nn];
+			s[nn] = 0;
+			printd(s);
+		}
+		ii += json_nodes_length(&user[1]) + 1;
+	}
+	linearFree(t);
+	return 0;
+}
+//---------------------------------------------------------------------------	
+int CFBClient::json_nodes_length(jsmntok_t *t)
+{
+   int res;
+    
+   res=1;
+   for(int i =0;i<t->size;i++)
+	res += json_nodes_length(&t[res]);
+   return res;
 }
 //---------------------------------------------------------------------------	
 int CFBClient::set_Cookies(char *str)

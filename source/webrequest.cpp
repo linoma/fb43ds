@@ -58,6 +58,7 @@ int CWebRequest::destroy()
 	headers.clear();
 	response.clear();
 	bytesIn = 0;
+	_response_len = 0;
 #endif	
 	return 0;
 }
@@ -71,7 +72,7 @@ int CWebRequest::get_responseheader(char *key,char *buf,u32 size)
 {
 	int len;
 	
-	if(!key || !*key)
+	if(!key || !*key || !_response_len)
 		return 0;
 	if(response.count(key) == 0)
 		return 0;
@@ -97,7 +98,7 @@ int CWebRequest::get_statuscode(u32 *ret)
 	
 	if(!ret)
 		return -1;
-	if(response.count("status-code") == 0)
+	if(!_response_len || response.count("status-code") == 0)
 		return -2;
 	std::string c = response.find("status-code")->second;
 	p = (char *)malloc(c.length()+2);
@@ -255,8 +256,8 @@ int CWebRequest::download_data(char *buf,u32 size,u32 *pret)
 	
 	if(!buf || !size || !_buf)
 		return -1;
-	err=0;
-	ret=0;
+	err = 0;
+	ret = 0;
 	while(size > 0 && !err){
 		if(!bytesIn){
 			while(bytesIn < 4096 && !err){
@@ -270,7 +271,7 @@ int CWebRequest::download_data(char *buf,u32 size,u32 *pret)
 					break;
 					case SSL_ERROR_SYSCALL:
 					default:
-						printd("erro %d",r);
+						//printd("erro %d",r);
 					break;
 				}
 			}
@@ -286,6 +287,14 @@ int CWebRequest::download_data(char *buf,u32 size,u32 *pret)
 		*pret = ret;
 	return 0;
 #endif	
+}
+//---------------------------------------------------------------------------
+int CWebRequest::get_response_length(u32 *ret)
+{
+	if(!ret)
+		return -1;
+	*ret = _response_len;
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CWebRequest::send(int mode)
@@ -366,21 +375,16 @@ int CWebRequest::send(int mode)
 	if(bytesIn < 1)
 		goto send_error;
 #ifdef _DEBUG
-		if(mode & RQ_DEBUG){
-			Handle sram;
-				
-			Result res = FSUSER_OpenFile(NULL,&sram,sdmcArchive,FS_makePath(PATH_CHAR,"/lino.txt"),FS_OPEN_CREATE|FS_OPEN_WRITE,FS_ATTRIBUTE_NONE);
-			if (res == 0){
-				u32 byteswritten = 0;
-				FSFILE_Write(sram, &byteswritten, 0, (u32*)_buf, bytesIn, FS_WRITE_FLUSH);
-				FSFILE_Close(sram);
-			}		
-		}
+		if(mode & RQ_DEBUG)
+			write_to_sdmc("/lino.txt",(u8 *)_buf,bytesIn);
 #endif
 	res--;//14
 	i = parse_response();
 	if(i < 1)
 		goto send_error;
+	_response_len = (u32)i;
+	bytesIn -= i;
+	memcpy(_buf,&_buf[i],bytesIn);
 	return 0;	
 send_error:
 	destroy();

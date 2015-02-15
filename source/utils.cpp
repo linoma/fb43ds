@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
+
+extern FS_archive sdmcArchive;
 //---------------------------------------------------------------------------
 char *trim(char *s)
 {
@@ -99,6 +101,21 @@ int printd(char *fmt,...)
 	svcOutputDebugString(s,strlen(s));
 #endif
 	return 0;
+}
+//---------------------------------------------------------------------------
+u32 write_to_sdmc(char *filename,u8 *_buf,u32 size)
+{
+	Handle sram;
+	u32 byteswritten;
+	
+	byteswritten = 0;		
+	Result res = FSUSER_OpenFile(NULL,&sram,sdmcArchive,FS_makePath(PATH_CHAR,filename),FS_OPEN_CREATE|FS_OPEN_WRITE,FS_ATTRIBUTE_NONE);
+	if (res == 0){
+		
+		FSFILE_Write(sram, &byteswritten, 0, _buf, size, FS_WRITE_FLUSH);
+		FSFILE_Close(sram);
+	}		
+	return byteswritten;
 }
 //---------------------------------------------------------------------------
 buffer::buffer()
