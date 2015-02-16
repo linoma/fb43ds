@@ -17,6 +17,7 @@ public:
 	static int Initialize();
 	static int Destroy();
 	static int onTouchEvent(touchPosition *p,u32 flags);
+	static int get_post_form_id(u32 arg0);
 	static int main(u32 arg0);
 	static int init(u32 arg0);
 	int SetTimer(CTimer *p);

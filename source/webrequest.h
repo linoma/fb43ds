@@ -19,7 +19,7 @@ public:
 	virtual ~CWebRequest();
 	int get_statuscode(u32 *ret);
 	int get_responseheader(char *key,char *buf,u32 size);
-	int begin(char *url);
+	int begin(const char *url);
 	int add_header(char *key,char *value);
 	int add_postdata_raw(char *data,u32 size,u32 flags=0);
 	int add_postdata(char *key,char *value,u32 flags=0);

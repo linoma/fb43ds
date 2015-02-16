@@ -611,33 +611,45 @@ int CFBClient::parse_buddy_list(char *js,u32 sz)
        if(strncmp(&js[t[i].start],"nowAvailableList",16) == 0)
            break;
 	}
-	printd("nodes %d %d %d",nnodes,i,res);
 	list = &t[++i];
 	for(ii=1,i=0;i<list->size;i++){
+		CUser *p;
+		int n,nn;
+		char c[35];
+		
 		user = &list[ii];
 		char *id = &js[user[0].start];
-		{
-			char s[30];
-			int n,nn;
-			
-			for(nn=0,n = user[0].start;n<user[0].end;n++,nn++)
-				s[nn] = id[nn];
-			s[nn] = 0;
-			printd(s);
+		for(n=0,nn = user[0].start;nn<user[0].end;nn++,n++)
+			c[n] = id[n];
+		c[n] = 0;
+		if(users.count(c) == 0){
+			if((p = new CUser(c)) != NULL)
+				users[c] = p;
 		}
-		ii += json_nodes_length(&user[1]) + 1;
+		ii += json_nodes_length(js,&user[1],p) + 1;
+		p = users[c];
+		if(!p->is_Ready())
+			sys_helper->set_Job(100,2,CUser::get_info_user,p);	
 	}
 	linearFree(t);
 	return 0;
 }
 //---------------------------------------------------------------------------	
-int CFBClient::json_nodes_length(jsmntok_t *t)
+int CFBClient::json_nodes_length(char *js,jsmntok_t *t,CUser *p)
 {
    int res;
-    
+   char *val;
+
    res=1;
-   for(int i =0;i<t->size;i++)
-	res += json_nodes_length(&t[res]);
+   val =&js[t->start];
+   if(p && strncmp(val,"status",6)==0){
+       jsmntok_t *tt=&t[1];
+       int value = strncmp(&js[tt->start],"active",6)==0;
+       p->set_Active(value);
+   }
+   for(int i =0;i<t->size;i++){
+       res += json_nodes_length(js,&t[res],p);
+   }
    return res;
 }
 //---------------------------------------------------------------------------	

@@ -120,7 +120,7 @@ int CWebRequest::get_statuscode(u32 *ret)
 #endif
 }
 //---------------------------------------------------------------------------
-int CWebRequest::begin(char *url)
+int CWebRequest::begin(const char *url)
 {
 	char *p,*p1;
 	int len,mode;
