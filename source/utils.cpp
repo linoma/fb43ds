@@ -103,7 +103,7 @@ int printd(char *fmt,...)
 	return 0;
 }
 //---------------------------------------------------------------------------
-u32 write_to_sdmc(char *filename,u8 *_buf,u32 size)
+u32 write_to_sdmc(const char *filename,u8 *_buf,u32 size)
 {
 	Handle sram;
 	u32 byteswritten;

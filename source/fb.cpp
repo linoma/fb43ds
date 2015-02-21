@@ -518,6 +518,7 @@ int CFBClient::Main(u32 arg0)
 		break;
 		case 3:
 			sys_helper->set_Job(4,1,get_buddy_list);
+			mode = -2;
 		break;
 	}
 	for (std::vector<CTimer *>::iterator t = timers.begin(); t != timers.end(); ++t)
@@ -595,7 +596,7 @@ int CFBClient::parse_buddy_list(char *js,u32 sz)
 	jsmn_parser parser;
 	jsmntok_t *t,*list,*user;
 	
-	write_to_sdmc("/buddylist.txt",(u8 *)js,sz);
+	//write_to_sdmc("/buddylist.txt",(u8 *)js,sz);
 	jsmn_init(&parser);
 	nnodes = jsmn_parse(&parser, js, sz, NULL,0);
 	if(nnodes < 0)

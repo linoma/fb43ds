@@ -24,4 +24,6 @@ protected:
 	int result;
 	std::queue<u32> jobs,results;
 };
+
+extern CSysHelper *sys_helper;
 #endif

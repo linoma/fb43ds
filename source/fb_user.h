@@ -12,6 +12,7 @@ public:
    int get_info();
    static int get_info_user(u32 arg0);
    int is_Ready(){return (status & 2) != 0;};
+   const char *get_ID(){return id;};
 protected:
    unsigned long status;
    char id[31];

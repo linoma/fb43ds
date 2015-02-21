@@ -350,6 +350,10 @@ int CWebRequest::send(int mode)
 		memcpy(&_buf[i],_postdata,_postdata_len);
 		i += _postdata_len;
 	}
+#ifdef _DEBUG
+	if(mode & RQ_DEBUG)
+		write_to_sdmc("/linosend.txt",(u8 *)_buf,i);
+#endif
 	i = SSL_write(ssl,_buf,i);
 	if(!i)
 		goto send_error;
@@ -375,8 +379,8 @@ int CWebRequest::send(int mode)
 	if(bytesIn < 1)
 		goto send_error;
 #ifdef _DEBUG
-		if(mode & RQ_DEBUG)
-			write_to_sdmc("/lino.txt",(u8 *)_buf,bytesIn);
+	if(mode & RQ_DEBUG)
+		write_to_sdmc("/lino.txt",(u8 *)_buf,bytesIn);
 #endif
 	res--;//14
 	i = parse_response();

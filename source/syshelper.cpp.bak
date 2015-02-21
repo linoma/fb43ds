@@ -141,7 +141,7 @@ int CSysHelper::Initialize()
 	if(svcCreateMutex(&mutex, false))
 		goto err_init;
 	res--;
-	if(svcCreateThread(&thread,(ThreadFunc)main,(u32)this,(u32*)(stack+sizeof(stack)),0x30,0xfffffffe))
+	if(svcCreateThread(&thread,main,(u32)this,(u32*)(stack+sizeof(stack)),0x30,0xfffffffe))
 		goto err_init;
 	return 0;
 err_init:

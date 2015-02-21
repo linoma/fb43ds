@@ -19,7 +19,7 @@ int main(int argc, char** argv)
 	srvInit();	
 	aptInit();	
 	CWebRequest::InitializeClient();	
-	gfxInit();
+	gfxInitDefault();
 	hidInit(NULL);	
 	GPU_Init(NULL);
 	gfxSet3D(false);

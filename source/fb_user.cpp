@@ -1,12 +1,17 @@
 #include "fb_user.h"
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "webrequest.h"
 #include "fb.h"
+#include "utils.h"
+#include "syshelper.h"
+#include "jsmn.h"
 
 //---------------------------------------------------------------------------
 CUser::CUser(const char *cid)
 {
-   status=0;
+   status = 0;
    strcpy(id,cid);
 }
 //---------------------------------------------------------------------------
@@ -26,21 +31,72 @@ int CUser::set_Active(int val)
 int CUser::get_info()
 {
 	CWebRequest *req;
-	int res;
+	int res,ret,nnodes;
 	std::string s;
+	char *_buf;
+	u32 code,sz;
+	jsmn_parser parser;
+	jsmntok_t *t,*list,*user;
 	
-	res=-1;
+	t = NULL;
+	_buf = NULL;
+	res = -1;
 	if((req = new CWebRequest()) == NULL)
 		goto fail;
 	res--;
-	s="https://www.facebook.com/chat/user_info/?__user=";
+	s = "https://www.facebook.com/chat/user_info/?__user=";
 	s += fb->get_UserId();
-	s += "&__a=1";
+	s += "&__a=1&ids[0]=";
+	s += id;
+
 	req->begin(s.c_str());
-fail:
-	if(req)
+	
+	ret = fb->get_Cookies(NULL,0);
+	if(ret > 0){
+		char *p = (char *)malloc(ret+1);
+		fb->get_Cookies(p,ret);
+		req->add_header("Cookie",p);
+		free(p);
+	}
+	
+	res--;
+	if(req->send(CWebRequest::RQ_DEBUG))
+		goto fail;
+	res--;
+	if(req->get_statuscode(&code))
+		goto fail;
+	res--;
+	if(code != 200)		
+		goto fail;
+	res--;
+	_buf = (char *)linearAlloc(0x2000);
+	if(req->download_data(_buf,0x2000,&sz))
+		goto fail;
+	res--;
+	jsmn_init(&parser);
+	nnodes = jsmn_parse(&parser, _buf, sz, NULL,0);
+	if(nnodes < 0)
+		goto fail;
+	res--;
+	t = (jsmntok_t *)linearAlloc(nnodes * sizeof(jsmntok_t));
+	if(!t)
+		goto fail;
+	res--;
+	jsmn_init(&parser);
+	ret = jsmn_parse(&parser,_buf,sz,t,nnodes);
+	
+	res = 0;
+fail:	
+	if(req != NULL)
 		delete req;
-	return res;
+	if(t)
+		linearFree(t);
+	if(_buf != NULL){
+		linearFree(_buf);
+		_buf=0;
+	}
+	sys_helper->set_Result(100,3,res,_buf,sz);
+	return res;	
 }
 //---------------------------------------------------------------------------
 int CUser::get_info_user(u32 arg0)

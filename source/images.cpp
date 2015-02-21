@@ -107,7 +107,7 @@ int CTimer::onCounter()
 		return -1;
 	val = svcGetSystemTick();
 	u64 dt = val - elapsed;
-	if(dt >= interval){
+	if(dt >= interval){	
 		elapsed = val;
 		if(fnc != NULL)
 			fnc(param);
