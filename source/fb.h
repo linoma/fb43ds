@@ -3,7 +3,7 @@
 #include "types.h"
 #include "images.h"
 #include "jsmn.h"
-#include "fb_user.h"
+#include "chat_list.h"
 
 #ifndef __FBH__
 #define __FBH__
@@ -19,6 +19,7 @@ public:
 	static int onTouchEvent(touchPosition *p,u32 flags);
 	static int main(u32 arg0);
 	static int init(u32 arg0);
+	int Init();
 	int SetTimer(CTimer *p);
 	int onTimersLoop();
 	int set_Cookies(char *str);
@@ -41,10 +42,10 @@ protected:
 	int parse_buddy_list(char *js,u32 sz);
 	std::vector<CTimer *>timers;
 	std::map<std::string,std::string>cookies;
-	std::map<std::string,CUser *>users;
 	std::string email,pass;
 	int mode;
 	char *_buffer,dtsg[50],userid[15];
+	CChatList *chat_list;
 private:
 	int json_nodes_length(char *js,jsmntok_t *t,CUser *p);
 };

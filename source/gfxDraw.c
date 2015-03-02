@@ -47,7 +47,7 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 		Y2 = prc->top;
 	}		
 	{
-		s32 i = (mode ? (Y2-Y1) : (X2-X1));
+		s32 i = ((mode&1) ? (Y2-Y1) : (X2-X1));
 	
 		ri = ((re-rs) << 12);
 		gi = ((ge-gs) << 12);
@@ -77,16 +77,18 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 	xe = X2-X1;
 	ye = Y2-Y1;
 	
-	if(mode){//vertical
+	if(mode&1){//vertical
 		for(x=0,x1=X1;x1<=X2;x1++,x++){
 			u8 *p = screen;
 			u32 r,g,b,a;
+			int yy;
 			
 			r = rf;
 			g = gf;
 			b = bf;
-			a = af;		
-			for(y=0;y<=radius;p-=3,y++){
+			a = af;
+			yy = (mode & 4) == 0 ? radius : -1;
+			for(y=0;y<=yy;p-=3,y++){
 				x0 = y0 = 0;
 				if(x <= radius){
 					x0 = radius - x;
@@ -108,8 +110,13 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 				g += gi;
 				b += bi;
 				a += ai;				
-			}					
-			for(;y<(ye-radius);p-=3,y++){
+			}
+			yy = ye;
+			if((mode & 2) == 0)
+				yy -= radius;
+			else
+				yy++;
+			for(;y<yy;p-=3,y++){
 				u8 da = a >> 12;
 				u8 sa = (255 - da);
 				BLEND_PIXEL(p,sa,da,(r>>12),(g>>12),(b>>12))
@@ -199,8 +206,11 @@ void gfxGradientFillRect(LPRECT prc,int radius,int mode,u32 s_col,u32 e_col,u8 *
 void gfxFillRoundRect(LPRECT prc, int radius,u32 b_col,u32 f_col, u8* screen)
 {
 	int X1,X2,Y1,Y2,x,y,r2,i,xe,ye,x0,y0,r3;
-	int rf,gf,bf,rb,gb,bb,af,ab;
+	int rf,gf,bf,rb,gb,bb,af,ab,mode;
 	u8 r,g,b,a,as;
+	
+	mode = (int)(u16)(radius>>16);
+	radius &= 0xffff;
 	
 	af = (int)(f_col >> 24) & 0xFF;
 	rf = (int)(f_col >> 16) & 0xFF;
@@ -517,17 +527,16 @@ void gfxLine(int x0, int y0, int x1, int y1,u32 col,u8 *screen)
 	sy = y0 < y1 ? 1 : -1;
 	
 	a = (u8)(col>>24);
-	r=(u8)(col>>16);
-	g=(u8)(col>>8);
-	b=(u8)col;
-	as=255-a;
+	r = (u8)(col>>16);
+	g = (u8)(col>>8);
+	b = (u8)col;
+	as = 255-a;
 	
 	u8 *p=screen + (239 - y0 + x0 * 240)*3;
 	ix = sx*240*3;
 	iy = sy*-3;
 	
-	for(;;){
-		//gfxPixel(x0,y0,r,g,b,screen);
+	while(1){
 		BLEND_PIXEL(p,as,a,r,g,b)
 		if (x0==x1 && y0==y1) 
 			break;
@@ -542,5 +551,31 @@ void gfxLine(int x0, int y0, int x1, int y1,u32 col,u8 *screen)
 			y0 += sy; 
 			p += iy;
 		}
+	}
+}
+//---------------------------------------------------------------------------
+void gfxFloodFill(int x0, int y0, u32 fillColor, u32 interiorColor,u8 *screen)
+{
+	u32 col;
+	u8 *p;
+	
+	interiorColor &= 0xFFFFFF;
+	p = screen + (239 - y0 + x0 * 240)*3;
+	col = p[0];
+	col |= p[1] << 8;
+	col |= p[2] << 16;	
+	if(col == interiorColor){
+		u8 r,g,b,a,as;
+		
+		a = (u8)(fillColor>>24);
+		r = (u8)(fillColor>>16);
+		g = (u8)(fillColor>>8);
+		b = (u8)fillColor;
+		as = 255 - a;	
+		BLEND_PIXEL(p,as,a,r,g,b)
+		gfxFloodFill(x0 + 1, y0, fillColor, interiorColor,screen);
+		gfxFloodFill(x0 - 1, y0, fillColor, interiorColor,screen);
+		gfxFloodFill(x0, y0 + 1, fillColor, interiorColor,screen);
+		gfxFloodFill(x0, y0 - 1, fillColor, interiorColor,screen);
 	}
 }

@@ -16,14 +16,10 @@ int main(int argc, char** argv)
 	touchPosition lastTouch,lt;
 	int frame=0,lp_frame=0;
 	
-	srvInit();	
-	aptInit();	
 	CWebRequest::InitializeClient();	
 	gfxInitDefault();
-	hidInit(NULL);	
 	GPU_Init(NULL);
 	gfxSet3D(false);
-	fsInit();
 	srand(svcGetSystemTick());
 	CFBClient::Initialize();
 	pfn_State = CFBClient::main;

@@ -23,11 +23,6 @@ static int on_clicked_button(CBaseWindow *w)
 	return fb->onClicked(w->get_ID());	
 }
 //---------------------------------------------------------------------------
-static int fb_main(u32 arg0)
-{
-	return fb->Main(arg0);
-}
-//---------------------------------------------------------------------------
 static int fb_authenticate(u32 arg0)
 {
 	u32 val,*p;
@@ -192,7 +187,7 @@ static int fb_login(u32 arg0)
 	bottom->add(b);
 	
 	b->set_Events("clicked",(void *)on_clicked_login);
-
+	
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -230,15 +225,29 @@ static int sys_init(u32 arg0)
 	return ret;
 }
 //---------------------------------------------------------------------------
+int CFBClient::Init()
+{
+	if((chat_list = new CChatList()) == NULL)
+		return -1;
+	if(chat_list->create(10,10,160,170,-1))
+		return -2;
+	return 0;
+}
+//---------------------------------------------------------------------------
 CFBClient::CFBClient()
 {
 	email = "";
 	pass = "";
 	mode = 0;
+	chat_list = NULL;
 }
 //---------------------------------------------------------------------------
 CFBClient::~CFBClient()
 {
+	if(chat_list != NULL){
+		delete chat_list;
+		chat_list = NULL;
+	}
 }
 //---------------------------------------------------------------------------
 int CFBClient::Initialize()
@@ -246,16 +255,18 @@ int CFBClient::Initialize()
 	fb = new CFBClient();
 	if(!fb)
 		return -1;
+	if(fb->Init())
+		return -2;
 	linear_buffer = (u8 *)linearAlloc(0x80000);	
 	if(!linear_buffer)
-		return -2;
+		return -3;
 	sys_helper = new CSysHelper();
 	if(!sys_helper || sys_helper->Initialize())
-		return -3;
+		return -4;
 	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 	FSUSER_OpenArchive(NULL, &sdmcArchive);
 	if(gui_init())
-		return -4;	
+		return -5;	
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -382,6 +393,8 @@ int CFBClient::onTimers(u32 id)
 int CFBClient::onClicked(u32 id)
 {
 	switch(id){
+		default:
+		break;
 	}
 	printd("click %lu",id);
 	return 0;
@@ -507,6 +520,8 @@ int CFBClient::Main(u32 arg0)
 		break;
 		case 1:
 			fb_login(0);
+			top->add(chat_list);
+			chat_list->Show();
 			mode=-2;
 		break;
 		case 2:
@@ -585,6 +600,15 @@ int CFBClient::Main(u32 arg0)
 			}
 			mode=-1;
 		break;
+		case 100:
+			if(!p[2]){
+				CUser *u;
+				
+				u = (CUser *)p[3];
+				printd((char *)u->get_Name());
+			}	
+			mode=-1;
+		break;
 	}
 	free(p);
 	return 0;
@@ -623,12 +647,8 @@ int CFBClient::parse_buddy_list(char *js,u32 sz)
 		for(n=0,nn = user[0].start;nn<user[0].end;nn++,n++)
 			c[n] = id[n];
 		c[n] = 0;
-		if(users.count(c) == 0){
-			if((p = new CUser(c)) != NULL)
-				users[c] = p;
-		}
+		p = chat_list->add_user(c);
 		ii += json_nodes_length(js,&user[1],p) + 1;
-		p = users[c];
 		if(!p->is_Ready())
 			sys_helper->set_Job(100,2,CUser::get_info_user,p);	
 	}
@@ -642,15 +662,14 @@ int CFBClient::json_nodes_length(char *js,jsmntok_t *t,CUser *p)
    char *val;
 
    res=1;
-   val =&js[t->start];
+   val = &js[t->start];
    if(p && strncmp(val,"status",6)==0){
-       jsmntok_t *tt=&t[1];
+       jsmntok_t *tt = &t[1];
        int value = strncmp(&js[tt->start],"active",6)==0;
        p->set_Active(value);
    }
-   for(int i =0;i<t->size;i++){
+   for(int i =0;i<t->size;i++)
        res += json_nodes_length(js,&t[res],p);
-   }
    return res;
 }
 //---------------------------------------------------------------------------	

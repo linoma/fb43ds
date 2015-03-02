@@ -515,10 +515,11 @@ int CDesktop::Invalidate(int flags)
 	return res;
 }
 //---------------------------------------------------------------------------
-CWindow::CWindow() : CBaseWindow()
+CWindow::CWindow() : CContainerWindow()
 {
-	color = 0xFF000000;
-	bkcolor = 0xFFFFFFFF;
+	color = 0x60000000;
+	bkcolor = 0xFFf8f8f8;
+	gfxGetTextExtent(NULL,"X",&szCaption);
 }
 //---------------------------------------------------------------------------
 CWindow::~CWindow()
@@ -526,16 +527,34 @@ CWindow::~CWindow()
 	destroy();
 }
 //---------------------------------------------------------------------------
-int CWindow::draw(u8 *screen)
+int CWindow::EraseBkgnd(u8 *screen)
 {
-	if(!CBaseWindow::draw(screen)){
-		if(text){
-			gfxSetTextColor(color);
-			gfxDrawText(screen,font,text,&rcWin,0);
-		}
-		return 0;
+	RECT rc;
+	
+	if(is_invalidate())
+		return -1;
+	gfxFillRoundRect(&rcWin,5,color,bkcolor,screen);
+	rc.left = rcWin.left+1;
+	rc.right = rcWin.right-1;
+	rc.top = rcWin.top + 1;
+	rc.bottom = rc.top + szCaption.cy + 1;
+	gfxGradientFillRect(&rc,4,3,0xFFdddddd,0xFFb0b0b0,screen);
+	if(text){
+		gfxSetTextColor(color|0xff000000);
+		gfxDrawText(screen,font,text,&rc,1);
 	}
-	return -1;
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CWindow::get_ClientRect(LPRECT prc)
+{
+	if(!prc)
+		return -1;
+	prc->left=1;
+	prc->right = rcWin.right-rcWin.left-1;
+	prc->top = szCaption.cy + 3;
+	prc->bottom=rcWin.bottom-rcWin.top-1-prc->top;	
+	return 0;
 }
 //---------------------------------------------------------------------------
 CLabel::CLabel(char *c) : CBaseWindow()
@@ -896,4 +915,33 @@ int CToolButton::draw(u8 *screen)
 	x = rcWin.left + (((rcWin.right - rcWin.left) - w) >> 1);
 	y = rcWin.top + (((rcWin.bottom - rcWin.top) - h) >> 1);
 	return pImage->draw(screen,x,y,w,h,rcImage.left,rcImage.top);
+}
+//---------------------------------------------------------------------------
+CScrollBar::CScrollBar(int m) : CBaseWindow()
+{
+	bkcolor=0xff909090;
+	status |= m ? 0x100 : 0;
+}
+//---------------------------------------------------------------------------
+int CScrollBar::draw(u8 *screen)
+{
+	RECT rc;
+	
+	if(is_invalidate())
+		return -1;
+	gfxFillRoundRect(&rcWin,4,bkcolor,bkcolor,screen);
+	CopyRect(rc,rcWin);
+	InflateRect(rc,2,2);
+	rc.bottom = rc.top+24;
+	gfxFillRoundRect(&rc,0x20002,0xffb0b0b0,0xffb0b0b0,screen);
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CScrollBar::create(u32 x,u32 y,u32 w,u32 h,u32 id)
+{
+	if(status & 0x100)
+		h = 12;
+	else
+		w = 12;
+	return CBaseWindow::create(x,y,w,h,id);
 }

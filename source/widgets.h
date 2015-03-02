@@ -29,6 +29,7 @@ public:
 	virtual int Invalidate(int flags=0);
 	virtual int set_Pos(int x, int y);
 	int get_WindowRect(LPRECT prc);
+	virtual int get_ClientRect(LPRECT prc){return get_WindowRect(prc);};
 	virtual int set_Text(char *s);	
 	int get_Text(char *s,u32 len);
 	u32 get_ID(){return ID;};
@@ -112,11 +113,14 @@ protected:
 	CCursor *cursor;
 };
 //---------------------------------------------------------------------------
-class CWindow : public CBaseWindow {
+class CWindow : public CContainerWindow {
 public:	
 	CWindow();
 	virtual ~CWindow();
-	virtual int draw(u8 *screen);
+	virtual int get_ClientRect(LPRECT prc);
+protected:
+	virtual int EraseBkgnd(u8 *screen);
+	SIZE szCaption;
 };
 //---------------------------------------------------------------------------
 class CLabel : public CBaseWindow{	
@@ -175,9 +179,10 @@ public:
 //---------------------------------------------------------------------------
 class CScrollBar : public CBaseWindow{
 public:
-	CScrollBar();
+	CScrollBar(int m=0);
 	virtual ~CScrollBar(){};
-	int draw(u8 *screen){return 0;};
+	int draw(u8 *screen);
+	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
 protected:
 	u32 pos,min,max;
 };

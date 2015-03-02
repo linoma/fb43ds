@@ -86,6 +86,25 @@ int urlencode(char *src,char *dst)
 	return i;
 }
 //---------------------------------------------------------------------------
+char *stripslashes(char *s)
+{
+   int i,ii;
+
+   if(!s || !*s)
+		return s;
+   for(i=ii=0;s[i] != 0;i++){
+       if(s[i] == '\\'){
+           int i0 = i+1;
+
+           if(s[i0] == '/' || s[i0] == '\'' || s[i0] == '"' || s[i0] == '\\')
+               continue;
+       }
+       s[ii++] = s[i];
+   }
+   s[ii] = 0;
+   return s;
+}
+//---------------------------------------------------------------------------
 int printd(char *fmt,...)
 {
 #ifdef _DEBUG

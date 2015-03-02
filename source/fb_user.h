@@ -1,10 +1,11 @@
 #include <3ds.h>
 #include <string>
+#include "jpeg-image.h"
 
 #ifndef __FBUSERH__
 #define __FBUSERH__
 
-class CUser{
+class CUser : public CImageJpeg{
 public:
    CUser(const char *cid);
    virtual ~CUser();
@@ -13,10 +14,10 @@ public:
    static int get_info_user(u32 arg0);
    int is_Ready(){return (status & 2) != 0;};
    const char *get_ID(){return id;};
+   const char *get_Name(){return name;};
 protected:
    unsigned long status;
-   char id[31];
-   std::string name;
+   char id[31],*name,*thumbSrc;
 };
 
 #endif

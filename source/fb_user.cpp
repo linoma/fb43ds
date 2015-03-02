@@ -9,14 +9,18 @@
 #include "jsmn.h"
 
 //---------------------------------------------------------------------------
-CUser::CUser(const char *cid)
+CUser::CUser(const char *cid) : CImageJpeg()
 {
    status = 0;
+   name = thumbSrc = NULL;
    strcpy(id,cid);
 }
 //---------------------------------------------------------------------------
 CUser::~CUser()
 {
+	if(name != NULL)
+		free(name);
+	name = thumbSrc = NULL;
 }
 //---------------------------------------------------------------------------
 int CUser::set_Active(int val)
@@ -31,12 +35,12 @@ int CUser::set_Active(int val)
 int CUser::get_info()
 {
 	CWebRequest *req;
-	int res,ret,nnodes;
+	int res,ret,nnodes,i,ii;
 	std::string s;
 	char *_buf;
 	u32 code,sz;
 	jsmn_parser parser;
-	jsmntok_t *t,*list,*user;
+	jsmntok_t *t,*nname,*nthumb;
 	
 	t = NULL;
 	_buf = NULL;
@@ -84,7 +88,41 @@ int CUser::get_info()
 	res--;
 	jsmn_init(&parser);
 	ret = jsmn_parse(&parser,_buf,sz,t,nnodes);
-	
+	nname = nthumb = NULL;
+	for(i=0;i<ret;i++){
+		if(t[i].type != JSMN_STRING)
+			continue;
+		if(strncmp(&_buf[t[i].start],"name",4)==0){
+			nname = &t[++i];
+			break;
+		}
+	}
+	for(i=0;i<ret;i++){
+		if(t[i].type != JSMN_STRING)
+			continue;
+		if(strncmp(&_buf[t[i].start],"thumbSrc",8)==0){
+			nthumb = &t[++i];
+			break;
+		}
+	}
+	if(nname == NULL)
+		goto fail;
+	res--;
+	i = nname->end - nname->start + 1;
+	ii = 0;
+	if(nthumb)
+		ii = nthumb->end - nthumb->start + 1;
+	name = (char *)calloc(i+ii+2,1);
+	if(name == NULL)
+		goto fail;
+	res--;
+	thumbSrc = &name[i+1];
+	strncpy(name,&_buf[nname->start],nname->end - nname->start);
+	if(nthumb){
+       strncpy(thumbSrc,&_buf[nthumb->start],nthumb->end - nthumb->start);
+       stripslashes(thumbSrc);       
+	}
+	status |= 2;
 	res = 0;
 fail:	
 	if(req != NULL)
@@ -95,7 +133,7 @@ fail:
 		linearFree(_buf);
 		_buf=0;
 	}
-	sys_helper->set_Result(100,3,res,_buf,sz);
+	sys_helper->set_Result(100,2,res,this);
 	return res;	
 }
 //---------------------------------------------------------------------------
