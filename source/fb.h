@@ -17,6 +17,8 @@ public:
 	static int Initialize();
 	static int Destroy();
 	static int onTouchEvent(touchPosition *p,u32 flags);
+	static int onKeysPressEvent(u32 value,u32 flags = 0);
+	static int onKeysUpEvent(u32 value,u32 flags = 0);
 	static int main(u32 arg0);
 	static int init(u32 arg0);
 	int Init();

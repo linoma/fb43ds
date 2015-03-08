@@ -6,13 +6,14 @@
 #include "fb.h"
 #include "utils.h"
 #include "syshelper.h"
-#include "jsmn.h"
+#include "gfxtext.h"
 
 //---------------------------------------------------------------------------
 CUser::CUser(const char *cid) : CImageJpeg()
 {
    status = 0;
    name = thumbSrc = NULL;
+   win=NULL;
    strcpy(id,cid);
 }
 //---------------------------------------------------------------------------
@@ -21,6 +22,10 @@ CUser::~CUser()
 	if(name != NULL)
 		free(name);
 	name = thumbSrc = NULL;
+	if(win){
+		delete win;
+		win=NULL;
+	}
 }
 //---------------------------------------------------------------------------
 int CUser::set_Active(int val)
@@ -30,6 +35,15 @@ int CUser::set_Active(int val)
    else
        status &= ~1;
    return 0;
+}
+//---------------------------------------------------------------------------
+int CUser::draw(LPRECT prc,u8 *screen)
+{
+	if(!(status & 2) || !name)
+		return -1;
+	gfxSetTextColor(0xff000000);
+	gfxDrawText(screen,NULL,name,prc,0);
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CUser::get_info()
@@ -61,8 +75,7 @@ int CUser::get_info()
 		fb->get_Cookies(p,ret);
 		req->add_header("Cookie",p);
 		free(p);
-	}
-	
+	}	
 	res--;
 	if(req->send(CWebRequest::RQ_DEBUG))
 		goto fail;

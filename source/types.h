@@ -30,4 +30,9 @@ typedef int (*LPDEFFUNC)(u32);
 	b.right=a.right;\
 	b.bottom=a.bottom;
 	
+#define SetRect(a,b,c,d,e) a.left=b;\
+	a.top = c;\
+	a.right = d;\
+	a.bottom = e;
+	
 #endif

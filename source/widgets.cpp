@@ -5,7 +5,6 @@
 #include <vector>
 #include <3ds.h>
 #include "widgets.h"
-#include "gfxdraw.h"
 #include "gfxtext.h"
 #include "gui.h"
 #include "fb.h"
@@ -17,7 +16,7 @@ CCursor::CCursor(CContainerWindow *w) : CAnimation(500)
 	desk = w;
 	win = NULL;
 	status &= ~5;
-	gfxGetTextExtent(NULL,"X",&sz);
+	gfxGetTextExtent(NULL,"X",&sz);	
 }
 //---------------------------------------------------------------------------
 int CCursor::Show(CBaseWindow *v,int x,int y)
@@ -84,6 +83,7 @@ CBaseWindow::CBaseWindow()
 	text_len = 0;
 	font = NULL;
 	status = 0;
+	alpha = 255;
 	Invalidate();	
 }
 //---------------------------------------------------------------------------
@@ -96,12 +96,31 @@ CBaseWindow::CBaseWindow(gfxScreen_t s)
 	text_len = 0;
 	font = NULL;
 	status = 0;
+	alpha = 255;
 	Invalidate();
 }
 //---------------------------------------------------------------------------
 CBaseWindow::~CBaseWindow()
 {
 	destroy();
+}
+//---------------------------------------------------------------------------
+u32 CBaseWindow::adjust_AlphaColor(u32 col)
+{
+	u32 a;
+	
+	a = (col >> 24);
+	col &= 0xFFFFFF;
+	a = (a * alpha) >> 8;
+	col |= (a << 24);
+	return col;
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::set_Alpha(u8 val)
+{
+	alpha = val;
+	Invalidate();
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CBaseWindow::Show()
@@ -170,33 +189,33 @@ int CBaseWindow::set_TextColor(u32 c)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CBaseWindow::onTouchEvent(touchPosition *p,u32 flags)
+CBaseWindow *CBaseWindow::onTouchEvent(touchPosition *p,u32 flags)
 {
 	if(!(flags & 4))
-		return -5;
+		return 0;
 	status &= ~1;
 	if(p->px < rcWin.left)
-		return -1;
+		return 0;
 	if(p->px > rcWin.right)
-		return -2;
+		return 0;
 	if(p->py < rcWin.top)
-		return -3;
+		return 0;
 	if(p->py > rcWin.bottom)
-		return -4;
+		return 0;
 	fire_event("clicked");
 	//we are inside the widget
 	status |= 1;
+	return this;
+}
+//---------------------------------------------------------------------------
+CBaseWindow *CBaseWindow::onKeysPressEvent(u32 press,u32 flags)
+{
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CBaseWindow:: onKeysPressEvent(u32 press)
+CBaseWindow *CBaseWindow::onKeysUpEvent(u32 press,u32 flags)
 {
-	return -1;
-}
-//---------------------------------------------------------------------------
-int CBaseWindow::onKeysUpEvent(u32 press)
-{
-	return -1;
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CBaseWindow::onActivate(int v)
@@ -315,6 +334,15 @@ CContainerWindow::CContainerWindow(gfxScreen_t s) : CBaseWindow(s)
 {
 }
 //---------------------------------------------------------------------------
+int CContainerWindow::set_Alpha(u8 val)
+{
+	for(std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win)
+		(*win)->set_Alpha(val);
+	alpha = val;
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
 int CContainerWindow::draw(u8 *screen)
 {
 	if(status & 4)
@@ -391,6 +419,34 @@ int CContainerWindow::recalc_layout()
 	return 0;
 }
 //---------------------------------------------------------------------------
+CBaseWindow *CContainerWindow::onTouchEvent(touchPosition *p,u32 flags)
+{
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		if((*win)->onTouchEvent(p,flags))
+			return *win;
+	}
+	return CBaseWindow::onTouchEvent(p,flags);
+}
+//---------------------------------------------------------------------------	
+CBaseWindow *CContainerWindow::onKeysPressEvent(u32 press,u32 flags)
+{
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		if(!(*win)->onKeysPressEvent(press,flags)){
+			return *win;
+		}
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------	
+CBaseWindow *CContainerWindow::onKeysUpEvent(u32 press,u32 flags)
+{
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		if(!(*win)->onKeysUpEvent(press,flags))
+			return *win;
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------
 CDesktop::CDesktop(gfxScreen_t s) : CContainerWindow(s)
 {
 	u16 w,h;
@@ -407,16 +463,32 @@ u8 *CDesktop::get_Buffer()
 {
 	return gfxGetFramebuffer(scr,GFX_LEFT,NULL,NULL);
 }
+//---------------------------------------------------------------------------	
+CBaseWindow *CDesktop::onKeysPressEvent(u32 press,u32 flags)
+{
+	CBaseWindow *w;
+	
+	if(a_win){
+		if(a_win->onKeysPressEvent(press,flags))
+			return a_win;
+	}
+	if((press & (KEY_A|KEY_B)) == 0)
+		return NULL;
+	w = CContainerWindow::onKeysPressEvent(press,flags);
+	if(w != NULL)
+		onActivateWindow(w);
+	return w;
+}
 //---------------------------------------------------------------------------
-int CDesktop::onTouchEvent(touchPosition *p,u32 flags)
+CBaseWindow *CDesktop::onTouchEvent(touchPosition *p,u32 flags)
 {
 	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
-		if(!(*win)->onTouchEvent(p,flags)){
+		if((*win)->onTouchEvent(p,flags)){
 			onActivateWindow(*win);
-			return 0;
+			return *win;
 		}
 	}
-	return -1;
+	return 0;
 }
 //---------------------------------------------------------------------------	
 int CDesktop::onActivateWindow(CBaseWindow *win)
@@ -428,26 +500,6 @@ int CDesktop::onActivateWindow(CBaseWindow *win)
 		win->onActivate(1);
 	}
 	return 0;
-}
-//---------------------------------------------------------------------------	
-int CDesktop::onKeysPressEvent(u32 press)
-{
-	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
-		if(!(*win)->onKeysPressEvent(press)){
-			onActivateWindow(*win);
-			return 0;
-		}
-	}
-	return -1;
-}
-//---------------------------------------------------------------------------	
-int CDesktop::onKeysUpEvent(u32 press)
-{
-	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
-		if(!(*win)->onKeysUpEvent(press))
-			return 0;
-	}
-	return -1;
 }
 //---------------------------------------------------------------------------	
 int CDesktop::ShowCursor(CBaseWindow *w,int x,int y)
@@ -546,14 +598,20 @@ int CWindow::EraseBkgnd(u8 *screen)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CWindow::get_ClientRect(LPRECT prc)
+int CWindow::get_ClientRect(LPRECT prc,u32 flags)
 {
 	if(!prc)
 		return -1;
-	prc->left=1;
+	prc->left = 1;
 	prc->right = rcWin.right-rcWin.left-1;
 	prc->top = szCaption.cy + 3;
-	prc->bottom=rcWin.bottom-rcWin.top-1-prc->top;	
+	prc->bottom = rcWin.bottom-rcWin.top-1-prc->top;
+	if(flags&1){
+		prc->left += rcWin.left;
+		prc->right += rcWin.right;
+		prc->top += rcWin.top;
+		prc->bottom += rcWin.top;
+	}
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -605,13 +663,13 @@ int CButton::draw(u8 *screen)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CButton::onKeysPressEvent(u32 press)
+CBaseWindow *CButton::onKeysPressEvent(u32 press,u32 flags)
 {
 	if(press & accel){
 		status |= 1;
-		return 0;
+		return this;
 	}
-	return CBaseWindow::onKeysPressEvent(press);
+	return CBaseWindow::onKeysPressEvent(press,flags);
 }
 //---------------------------------------------------------------------------
 CStatusBar::CStatusBar() : CContainerWindow()
@@ -676,10 +734,9 @@ int CEditText::draw(u8 *screen)
 	return res;
 }
 //---------------------------------------------------------------------------
-int CEditText::onKeysPressEvent(u32 press)
-{
-	
-	return -1;
+CBaseWindow *CEditText::onKeysPressEvent(u32 press,u32 flags)
+{	
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CEditText::HideCursor()
@@ -867,13 +924,13 @@ int CToolBar::EraseBkgnd(u8 *screen)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CToolBar::onTouchEvent(touchPosition *p,u32 flags)
+CBaseWindow *CToolBar::onTouchEvent(touchPosition *p,u32 flags)
 {
 	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
-		if(!(*win)->onTouchEvent(p,flags))
-			return 0;
+		if((*win)->onTouchEvent(p,flags))
+			return *win;
 	}
-	return -1;
+	return 0;
 }
 //---------------------------------------------------------------------------
 CToolButton::CToolButton() : CImageWindow()
@@ -919,21 +976,75 @@ int CToolButton::draw(u8 *screen)
 //---------------------------------------------------------------------------
 CScrollBar::CScrollBar(int m) : CBaseWindow()
 {
-	bkcolor=0xff909090;
+	bkcolor = 0xff909090;
 	status |= m ? 0x100 : 0;
+	pos = min = 0;
+	max = 0;
+	page = 0;
+	recalc_layout();
+}
+//---------------------------------------------------------------------------
+int CScrollBar::set_ScrollInfo(u32 mn,u32 mx,u32 pg)
+{
+	min = mn;
+	max = mx;
+	page = page;	
+	recalc_layout();
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CScrollBar::recalc_layout()
+{
+	float f,ff;
+	RECT rc;
+	
+	rcThumb.right = rcThumb.bottom = 0;
+	f = max - min;
+	get_ClientRect(&rc);
+	if(status & 0x100)
+		ff = rc.right - rc.left;
+	else
+		ff = rc.bottom - rc.top;
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CScrollBar::set_ScrollPos(u32 p)
+{
+	pos = p;
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CScrollBar::get_ScrollPos(u32 *p)
+{
+	if(!p)
+		return -1;
+	*p = pos;
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CScrollBar::get_ScrollInfo(u32 *mn,u32 *mx,u32 *pg)
+{
+	if(mn)
+		*mn = min;
+	if(mx)
+		*mx = max;
+	if(pg)
+		*pg = page;
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CScrollBar::draw(u8 *screen)
 {
-	RECT rc;
+	float f;
 	
 	if(is_invalidate())
 		return -1;
 	gfxFillRoundRect(&rcWin,4,bkcolor,bkcolor,screen);
-	CopyRect(rc,rcWin);
-	InflateRect(rc,2,2);
-	rc.bottom = rc.top+24;
-	gfxFillRoundRect(&rc,0x20002,0xffb0b0b0,0xffb0b0b0,screen);
+	if(rcThumb.right || rcThumb.bottom){
+		gfxFillRoundRect(&rcThumb,0x20002,0xffb0b0b0,0xffb0b0b0,screen);
+	}
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -944,4 +1055,20 @@ int CScrollBar::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 	else
 		w = 12;
 	return CBaseWindow::create(x,y,w,h,id);
+}
+//---------------------------------------------------------------------------
+CBaseWindow *CScrollBar::onTouchEvent(touchPosition *p,u32 flags)
+{
+	if(p->px < rcThumb.left)
+		goto fail;
+	if(p->px > rcThumb.right)
+		goto fail;
+	if(p->py < rcThumb.top)
+		goto fail;
+	if(p->py > rcThumb.bottom)
+		goto fail;
+	fire_event("clicked");
+	return this;
+fail:	
+	return CBaseWindow::onTouchEvent(p,flags);
 }

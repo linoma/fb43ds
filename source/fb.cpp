@@ -294,7 +294,7 @@ int CFBClient::main(u32 arg0)
 	
 	ret=0;
 	if(fb)
-		ret=fb->Main(arg0);
+		ret = fb->Main(arg0);
 	screen = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL,NULL);
 	top->draw(screen);
 	screen = gfxGetFramebuffer(GFX_BOTTOM, GFX_LEFT, NULL,NULL);
@@ -302,9 +302,29 @@ int CFBClient::main(u32 arg0)
 	return ret;
 }
 //---------------------------------------------------------------------------
+int CFBClient::onKeysPressEvent(u32 value,u32 flags)
+{
+	CBaseWindow *w;
+	
+	w=top->onKeysPressEvent(value,flags);
+	if(w == NULL)
+		w = bottom->onKeysPressEvent(value,flags);
+	return w != NULL;	
+}
+//---------------------------------------------------------------------------
+int CFBClient::onKeysUpEvent(u32 value,u32 flags)
+{
+	CBaseWindow *w;
+	
+	w=top->onKeysUpEvent(value,flags);
+	if(w == NULL)
+		w = bottom->onKeysUpEvent(value,flags);
+	return w != NULL;	
+}
+//---------------------------------------------------------------------------
 int CFBClient::onTouchEvent(touchPosition *p,u32 flags)
 {
-	return bottom->onTouchEvent(p,flags);
+	return bottom->onTouchEvent(p,flags) == 0 ? -1 : 0;
 }
 //---------------------------------------------------------------------------	
 int CFBClient::SetTimer(CTimer *p)
@@ -601,12 +621,8 @@ int CFBClient::Main(u32 arg0)
 			mode=-1;
 		break;
 		case 100:
-			if(!p[2]){
-				CUser *u;
-				
-				u = (CUser *)p[3];
-				printd((char *)u->get_Name());
-			}	
+			if(!p[2] && chat_list)
+				chat_list->Update();
 			mode=-1;
 		break;
 	}
@@ -652,6 +668,7 @@ int CFBClient::parse_buddy_list(char *js,u32 sz)
 		if(!p->is_Ready())
 			sys_helper->set_Job(100,2,CUser::get_info_user,p);	
 	}
+	chat_list->Update();
 	linearFree(t);
 	return 0;
 }

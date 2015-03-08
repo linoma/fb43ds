@@ -41,6 +41,7 @@ public:
 	CTopDesktop();
 	virtual ~CTopDesktop();
 	int init();
+	virtual CBaseWindow *onKeysPressEvent(u32 press,u32 flags=0);
 protected:
 	int EraseBkgnd(u8 *screen);
 	CImageGif *logo;
@@ -51,7 +52,7 @@ public:
 	CBottomDesktop();
 	virtual ~CBottomDesktop();
 	virtual int draw(u8 *screen);
-	int onTouchEvent(touchPosition *p,u32 flags=0);
+	CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);
 	int init();
 	int ShowCursor(CBaseWindow *w,int x,int y);
 	int HideCursor();

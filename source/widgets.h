@@ -18,18 +18,19 @@ public:
 	int set_BkColor(u32 c);
 	int set_TextColor(u32 c);
 	gfxScreen_t get_Screen(){return scr;}
-	virtual int onTouchEvent(touchPosition *p,u32 flags=0);
-	virtual int onKeysPressEvent(u32 press);
-	virtual int onKeysUpEvent(u32 press);
+	virtual CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);
+	virtual CBaseWindow *onKeysPressEvent(u32 press,u32 flags=0);
+	virtual CBaseWindow *onKeysUpEvent(u32 press,u32 flags=0);
 	virtual int onCharEvent(u8 c);
 	virtual int onActivate(int v);	
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
+	virtual int set_Alpha(u8 val);
 	int set_Parent(CBaseWindow *w){parent = w;return 0;};
 	CBaseWindow *get_Parent(){return parent;};
 	virtual int Invalidate(int flags=0);
 	virtual int set_Pos(int x, int y);
 	int get_WindowRect(LPRECT prc);
-	virtual int get_ClientRect(LPRECT prc){return get_WindowRect(prc);};
+	virtual int get_ClientRect(LPRECT prc,u32 flags=0){return get_WindowRect(prc);};
 	virtual int set_Text(char *s);	
 	int get_Text(char *s,u32 len);
 	u32 get_ID(){return ID;};
@@ -41,6 +42,7 @@ protected:
 	virtual int destroy();
 	virtual int fire_event(const char *key);
 	CBaseWindow *get_Desktop();
+	virtual u32 adjust_AlphaColor(u32 col);
 	
 	u32 color,bkcolor,status,ID,redraw,text_len;
 	gfxScreen_t scr;
@@ -48,6 +50,7 @@ protected:
 	CBaseWindow *parent;
 	char *text;
 	font_s *font;
+	u8 alpha;
 	std::map<std::string,void *>events;
 };
 //---------------------------------------------------------------------------
@@ -63,6 +66,10 @@ public:
 	virtual int Invalidate(int flags=0);
 	CBaseWindow *get_Window(u32 id);
 	virtual int recalc_layout();
+	virtual int set_Alpha(u8 val);
+	virtual CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);
+	virtual CBaseWindow *onKeysPressEvent(u32 press,u32 flags=0);
+	virtual CBaseWindow *onKeysUpEvent(u32 press,u32 flags=0);
 protected:
 	virtual int EraseBkgnd(u8 *screen);
 	std::vector<CBaseWindow *>wins;
@@ -95,9 +102,6 @@ class CDesktop : public CContainerWindow {
 public:
 	CDesktop(gfxScreen_t s);
 	virtual ~CDesktop(){};
-	virtual int onTouchEvent(touchPosition *p,u32 flags=0);
-	int onKeysPressEvent(u32 press);
-	int onKeysUpEvent(u32 press);	
 	virtual int ShowCursor(CBaseWindow *w,int x,int y);
 	virtual int HideCursor();
 	virtual int SetCursorPos(int x,int y);
@@ -107,8 +111,10 @@ public:
 	virtual int draw(u8 *screen);
 	virtual int Invalidate(int flags=0);
 	virtual int init(){return -1;};
+	virtual CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);
+	virtual CBaseWindow *onKeysPressEvent(u32 press,u32 flags=0);
 protected:
-	int onActivateWindow(CBaseWindow *win);
+	virtual int onActivateWindow(CBaseWindow *win);
 	CBaseWindow *a_win,*dlg_win;
 	CCursor *cursor;
 };
@@ -117,7 +123,7 @@ class CWindow : public CContainerWindow {
 public:	
 	CWindow();
 	virtual ~CWindow();
-	virtual int get_ClientRect(LPRECT prc);
+	virtual int get_ClientRect(LPRECT prc,u32 flags=0);
 protected:
 	virtual int EraseBkgnd(u8 *screen);
 	SIZE szCaption;
@@ -156,7 +162,7 @@ public:
 	CButton();
 	virtual ~CButton();
 	virtual int draw(u8 *screen);
-	int onKeysPressEvent(u32 press);
+	CBaseWindow *onKeysPressEvent(u32 press,u32 flags = 0);
 	int set_Accelerator(int v){accel = v;return 0;};
 protected:
 	int accel;
@@ -183,8 +189,15 @@ public:
 	virtual ~CScrollBar(){};
 	int draw(u8 *screen);
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
+	virtual CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);
+	int set_ScrollInfo(u32 mn,u32 mx,u32 pg);
+	int get_ScrollInfo(u32 *mn,u32 *mx,u32 *pg);
+	int set_ScrollPos(u32 p);
+	int get_ScrollPos(u32 *p);
 protected:
-	u32 pos,min,max;
+	int recalc_layout();
+	u32 pos,min,max,page;
+	RECT rcThumb;
 };
 //---------------------------------------------------------------------------
 class CEditText : public CBaseWindow{
@@ -195,7 +208,7 @@ public:
 	int onActivate(int v);
 	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
 	virtual int onCharEvent(u8 c);
-	virtual int onKeysPressEvent(u32 press);
+	virtual CBaseWindow *onKeysPressEvent(u32 press,u32 flags = 0);
 protected:
 	int HideCursor();
 	int ShowCursor(int x,int y);
@@ -221,7 +234,7 @@ public:
 	CToolBar();
 	virtual ~CToolBar();
 	virtual int recalc_layout();
-	virtual int onTouchEvent(touchPosition *p,u32 flags=0);	
+	virtual CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);	
 protected:
 	int EraseBkgnd(u8 *screen);
 };

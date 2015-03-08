@@ -4,11 +4,13 @@
 #include <string.h>
 #include <malloc.h>
 #include <stdarg.h>
+#include <algorithm>
 #include "widgets.h"
 #include "gfxdraw.h"
 #include "gfxtext.h"
 #include "fb4_logo_bin.h"
 #include "fb.h"
+#include "utils.h"
 
 CTopDesktop *top;
 CBottomDesktop *bottom;
@@ -81,6 +83,44 @@ int CTopDesktop::EraseBkgnd(u8 *screen)
 	return -1;
 }
 //---------------------------------------------------------------------------
+CBaseWindow *CTopDesktop::onKeysPressEvent(u32 press,u32 flags)
+{
+	if(press & (KEY_L|KEY_R)){
+		if(wins.empty())
+			return NULL;
+		if(a_win == NULL){
+			if(press & KEY_L)
+				a_win=wins.back();
+			else
+				a_win=wins.front();
+		}
+		else{
+			for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+				if(*win != a_win)
+					continue;
+				if(press & KEY_L){
+					if(win==wins.begin())
+						a_win=wins.back();
+					else{
+						win--;
+						a_win=*win;
+					}
+				}
+				else{
+					if(++win == wins.end())
+						a_win=wins.front();
+					else
+						a_win=*win;
+				}
+				break;
+			}
+		}
+		printd("awin 0x%X",(u32)a_win);
+		return a_win;
+	}	
+	return CDesktop::onKeysPressEvent(press,flags);
+}
+//---------------------------------------------------------------------------
 int CBottomDesktop::draw(u8 *screen)
 {
 	int i = CDesktop::draw(screen);
@@ -124,7 +164,7 @@ int CBottomDesktop::HideCursor()
 	return -1;
 }
 //---------------------------------------------------------------------------
-int CBottomDesktop::onTouchEvent(touchPosition *p,u32 flags)
+CBaseWindow *CBottomDesktop::onTouchEvent(touchPosition *p,u32 flags)
 {
 	if(dlg_win)
 		return dlg_win->onTouchEvent(p,flags);

@@ -3,7 +3,7 @@
 #include <3ds.h>
 #include "webrequest.h"
 #include "fb.h"
-
+#include "utils.h"
 
 extern u32* gxCmdBuf;
 u32* gpuOut = (u32*)0x1F119400;
@@ -28,17 +28,21 @@ int main(int argc, char** argv)
 		u32 press = hidKeysDown();
 		u32 held = hidKeysHeld();
 		u32 release = hidKeysUp();
+		if(press)
+			CFBClient::onKeysPressEvent(press,1);
+		if(release)
+			CFBClient::onKeysUpEvent(press,1);
 		if (held & KEY_TOUCH){
 			hidTouchRead(&lt);
-			if(!lp_frame)
+			if(!lp_frame){
 				lastTouch=lt;
+				lp_frame++;
+			}
 			else{
-				int i=0,d;
+				int i=0;
 				
-				d = abs(lt.px-lastTouch.px);
-				if(d <= 5){
-					d = abs(lt.py-lastTouch.py);
-					if(d <= 5)
+				if(abs(lt.px-lastTouch.px) <= 5){
+					if(abs(lt.py-lastTouch.py) <= 5)
 						i = 1;
 				}
 				if(i)
