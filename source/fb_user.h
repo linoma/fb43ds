@@ -13,6 +13,8 @@ public:
    int set_Active(int val);
    int get_info();
    static int get_info_user(u32 arg0);
+   static int get_avatar_user(u32 arg0);
+   int get_avatar();
    int is_Ready(){return (status & 2) != 0;};
    const char *get_ID(){return id;};
    const char *get_Name(){return name;};

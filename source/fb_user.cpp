@@ -66,9 +66,7 @@ int CUser::get_info()
 	s += fb->get_UserId();
 	s += "&__a=1&ids[0]=";
 	s += id;
-
-	req->begin(s.c_str());
-	
+	req->begin(s.c_str());	
 	ret = fb->get_Cookies(NULL,0);
 	if(ret > 0){
 		char *p = (char *)malloc(ret+1);
@@ -133,7 +131,8 @@ int CUser::get_info()
 	strncpy(name,&_buf[nname->start],nname->end - nname->start);
 	if(nthumb){
        strncpy(thumbSrc,&_buf[nthumb->start],nthumb->end - nthumb->start);
-       stripslashes(thumbSrc);       
+       stripslashes(thumbSrc);
+       sys_helper->set_Job(101,2,CUser::get_avatar_user,this);
 	}
 	status |= 2;
 	res = 0;
@@ -144,7 +143,7 @@ fail:
 		linearFree(t);
 	if(_buf != NULL){
 		linearFree(_buf);
-		_buf=0;
+		_buf=NULL;
 	}
 	sys_helper->set_Result(100,2,res,this);
 	return res;	
@@ -153,4 +152,52 @@ fail:
 int CUser::get_info_user(u32 arg0)
 {
 	return ((CUser *)arg0)->get_info();
+}
+//---------------------------------------------------------------------------
+int CUser::get_avatar_user(u32 arg0)
+{
+	return ((CUser *)arg0)->get_avatar();
+}
+//---------------------------------------------------------------------------
+int CUser::get_avatar()
+{
+	int res,ret;
+	CWebRequest *req;
+	char *_buf;
+	u32 code;
+	
+	res = -1;
+	_buf = NULL;
+	if((req = new CWebRequest()) == NULL)
+		goto fail;
+	res--;
+	req->begin(thumbSrc);	
+	ret = fb->get_Cookies(NULL,0);
+	if(ret > 0){
+		char *p = (char *)malloc(ret+1);
+		fb->get_Cookies(p,ret);
+		req->add_header("Cookie",p);
+		free(p);
+	}	
+	res--;
+	if(req->send(CWebRequest::RQ_DEBUG))
+		goto fail;
+	res--;
+	if(req->get_statuscode(&code))
+		goto fail;
+	res--;
+	if(code != 200)		
+		goto fail;
+	res--;
+	
+	res = 0;
+fail:
+	if(req != NULL)
+		delete req;
+	if(_buf != NULL){
+		linearFree(_buf);
+		_buf = NULL;
+	}
+	sys_helper->set_Result(101,2,res,this);
+	return res;
 }
