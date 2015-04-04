@@ -13,7 +13,7 @@ CUser::CUser(const char *cid) : CImageJpeg()
 {
    status = 0;
    name = thumbSrc = NULL;
-   win=NULL;
+   win = NULL;
    strcpy(id,cid);
 }
 //---------------------------------------------------------------------------
@@ -39,10 +39,20 @@ int CUser::set_Active(int val)
 //---------------------------------------------------------------------------
 int CUser::draw(LPRECT prc,u8 *screen)
 {
+	RECT rc;
+	
 	if(!(status & 2) || !name)
 		return -1;
+	rc.left=prc->left;
+	rc.right=prc->right;
+	rc.top=prc->top;
+	rc.bottom=prc->bottom;
+	if(CImageJpeg::status&1){
+		CImageJpeg::draw(screen,prc->left,prc->top);
+		rc.left+=32;
+	}
 	gfxSetTextColor(0xff000000);
-	gfxDrawText(screen,NULL,name,prc,0);
+	gfxDrawText(screen,NULL,name,&rc,0);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -164,7 +174,7 @@ int CUser::get_avatar()
 	int res,ret;
 	CWebRequest *req;
 	char *_buf;
-	u32 code;
+	u32 code,sz;
 	
 	res = -1;
 	_buf = NULL;
@@ -189,8 +199,10 @@ int CUser::get_avatar()
 	if(code != 200)		
 		goto fail;
 	res--;
-	
-	res = 0;
+	_buf = (char *)linearAlloc(0x5000);
+	if(req->download_data(_buf,0x5000,&sz))
+		goto fail;
+	res = load((u8 *)_buf,sz);
 fail:
 	if(req != NULL)
 		delete req;

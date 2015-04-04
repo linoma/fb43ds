@@ -68,7 +68,7 @@ CTopDesktop::~CTopDesktop()
 int CTopDesktop::init()
 {
 	ShowDialog(loaderDlg);
-	logo->load((u8 *)fb4_logo_bin);
+	logo->load((u8 *)fb4_logo_bin,fb4_logo_bin_size);
 	Invalidate();
 	return 0;
 }

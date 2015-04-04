@@ -19,7 +19,7 @@ public:
 	int get_Result(u32 *buf,u32 size);
 protected:
 	Handle ev[2],thread,mutex;
-	u8 stack[0x8000] __attribute__((aligned(8)));
+	u8 stack[0x8000] __attribute__ ((aligned(8)));
 	u32 status;
 	int result;
 	std::queue<u32> jobs,results;

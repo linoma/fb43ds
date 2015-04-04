@@ -37,10 +37,14 @@ public:
 	int set_Events(char *key,void *value);
 	virtual int Show();
 	virtual int Hide();
+	virtual int is_Visible(){return (status & 4) == 0;};
+private:
+	void Init();
 protected:
 	virtual int is_invalidate();
 	virtual int destroy();
 	virtual int fire_event(const char *key);
+	int has_event(const char *key);
 	CBaseWindow *get_Desktop();
 	virtual u32 adjust_AlphaColor(u32 col);
 	
@@ -238,5 +242,7 @@ public:
 protected:
 	int EraseBkgnd(u8 *screen);
 };
+
+extern int getCursorPos(LPPOINT p);
 
 #endif

@@ -9,11 +9,11 @@ extern u32* gxCmdBuf;
 u32* gpuOut = (u32*)0x1F119400;
 u32* gpuDOut = (u32*)0x1F370800;
 
-extern LPDEFFUNC pfn_State;
-
+static touchPosition lt;
+//---------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-	touchPosition lastTouch,lt;
+	touchPosition lastTouch;
 	int frame=0,lp_frame=0;
 	
 	CWebRequest::InitializeClient();	
@@ -22,15 +22,14 @@ int main(int argc, char** argv)
 	gfxSet3D(false);
 	srand(svcGetSystemTick());
 	CFBClient::Initialize();
-	pfn_State = CFBClient::main;
 	while(aptMainLoop()){
 		hidScanInput();		
 		u32 press = hidKeysDown();
 		u32 held = hidKeysHeld();
 		u32 release = hidKeysUp();
-		if(press)
+		if((press & ~KEY_TOUCH))
 			CFBClient::onKeysPressEvent(press,1);
-		if(release)
+		if((release & ~KEY_TOUCH))
 			CFBClient::onKeysUpEvent(press,1);
 		if (held & KEY_TOUCH){
 			hidTouchRead(&lt);
@@ -74,5 +73,14 @@ int main(int argc, char** argv)
 	gfxExit();
 	aptExit();
 	srvExit();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int getCursorPos(LPPOINT p)
+{
+	if(!p)
+		return -1;
+	p->x = lt.px;
+	p->y = lt.py;
 	return 0;
 }

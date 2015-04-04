@@ -17,8 +17,12 @@ public:
 	int onVScroll(CScrollBar *sb);
 	int Update();
 	CBaseWindow *onKeysPressEvent(u32 press,u32 flags = 0);
+	CUser *get_UserFromIndex(u32 idx);
 protected:
+	virtual int EraseBkgnd(u8 *screen);
 	std::map<std::string,CUser *>users;
+	RECT rcHandle;
+	u32 first_visible_item,item_height;
 };
 
 #endif

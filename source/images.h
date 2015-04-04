@@ -2,6 +2,7 @@
 #include "types.h"
 #include "gfxdraw.h"
 
+
 #ifndef __IMAGESH__
 #define __IMAGESH__
 
@@ -35,7 +36,7 @@ protected:
 class CImage{
 public:
 	CImage();
-	virtual int load(u8 *src,int w=-1,int h=-1);
+	virtual int load(u8 *src,u32 sz,int w=-1,int h=-1);
 	virtual int draw(u8 *dst,int x,int y,int w=-1,int h=-1,int x0=0,int y0=0);
 	virtual int begin_draw(int x=0,int y=0);
 	virtual int get_pixel(u32 *ret,int f=0,int flags=1);

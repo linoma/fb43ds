@@ -50,7 +50,7 @@ int CKeyboard::init(CDesktop *d)
 {
 	RECT rc;
 	
-	if(load((u8 *)keyboard_bin))
+	if(load((u8 *)keyboard_bin,keyboard_bin_size))
 		return -1;
 	desk = d;
 	desk->get_WindowRect(&rc);

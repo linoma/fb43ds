@@ -40,7 +40,7 @@ int CImage::destroy()
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CImage::load(u8 *src,int w,int h)
+int CImage::load(u8 *src,u32 sz,int w,int h)
 {	
 	return -1;
 }

@@ -5,12 +5,23 @@
 CChatList::CChatList() : CWindow()
 {
 	Hide();
-	set_Text("Chat");
 	set_Events("clicked",(void *)CChatList::onClick);
+	first_visible_item=0;
+	item_height=32;
 }
 //---------------------------------------------------------------------------
 CChatList::~CChatList()
 {
+}
+//---------------------------------------------------------------------------
+int CChatList::EraseBkgnd(u8 *screen)
+{
+	if(is_invalidate())
+		return -1;
+	gfxGradientFillRect(&rcWin,0,0,0xffeaeaea,bkcolor,screen);	
+	gfxGradientFillRect(&rcHandle,0,0,0xffeaeaea,bkcolor,screen);
+	gfxRect(&rcHandle,0x80808080,screen);
+	return 0;
 }
 //---------------------------------------------------------------------------
 int CChatList::onClick(CBaseWindow *w)
@@ -20,12 +31,22 @@ int CChatList::onClick(CBaseWindow *w)
 //---------------------------------------------------------------------------
 int CChatList::onClickItem()
 {
-	touchPosition lt;
+	POINT pt;
+	u32 item;
+	CUser *u;
 	
-	hidTouchRead(&lt);
-	lt.px -= rcWin.left;
-	lt.py -= rcWin.top;
-	printd("x=%d y=%d",lt.px,lt.py);
+	getCursorPos(&pt);
+	if(pt.x > rcHandle.left && pt.x < rcHandle.right && pt.y > rcHandle.top && pt.y < rcHandle.bottom){
+		Hide();
+		return 0;
+	}		
+	pt.x -= rcWin.left;
+	pt.y -= rcWin.top;
+	item = first_visible_item + (pt.y/item_height);
+	u = get_UserFromIndex(item);
+	if(u)
+		printd((char *)u->get_Name());
+	printd("x=%d y=%d",pt.x,pt.y);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -60,8 +81,12 @@ int CChatList::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 	CWindow::create(x,y,w,h,id);
 	b = new CScrollBar();
 	get_ClientRect(&rc);
-	b->create(rc.right-12,rc.top,0,rc.bottom,1);
+	b->create(rc.right-9,rc.top,0,rc.bottom,1);
 	b->set_Events("clicked",(void *)CChatList::onScroll);
+	rcHandle.right = rcWin.right;
+	rcHandle.left = rcHandle.right - 4;
+	rcHandle.top = rcWin.top + (((rcWin.bottom - rcWin.top) - 16) >> 1);
+	rcHandle.bottom = rcHandle.top + 24;
 	return add(b);
 }
 //---------------------------------------------------------------------------
@@ -75,19 +100,23 @@ int CChatList::draw(u8 *screen)
 {
 	int y;
 	RECT rc,rcItem;
+	u32 i;
 	
 	if(CWindow::draw(screen))
 		return -1;
 	get_ClientRect(&rc,1);
 	y = rc.top;
 	CopyRect(rcItem,rc);
-	for (std::map<std::string,CUser *>::iterator t = users.begin(); t != users.end(); ++t){
+	i=0;
+	for (std::map<std::string,CUser *>::iterator t = users.begin(); t != users.end(); ++t,i++){
+		if(i<first_visible_item)
+			continue;
 		rcItem.top = y;
-		rcItem.bottom = y + szCaption.cy;
+		rcItem.bottom = y + item_height;
+		if(rcItem.bottom>=rc.bottom)
+			break;
 		if(!t->second->draw(&rcItem,screen)){
 			y = rcItem.bottom + 1;
-			if(y>=rc.bottom)
-				break;
 		}
 	}
 	return 0;
@@ -105,4 +134,18 @@ CUser *CChatList::add_user(const char *cid)
 	users[cid] = p;
 	return p;
 }
+//---------------------------------------------------------------------------
+CUser *CChatList::get_UserFromIndex(u32 idx)	
+{
+	u32 i;
 	
+	if(idx >= users.size())
+		return NULL;
+	i=0;
+	for (std::map<std::string,CUser *>::iterator t = users.begin(); t != users.end(); ++t,i++){
+		if(i==idx)
+			return t->second;
+	}
+	return NULL;
+}
+		

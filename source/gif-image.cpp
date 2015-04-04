@@ -40,7 +40,7 @@ int CImageGif::get_pixel(u32 *ret,int f,int flags)
 	
 	idx = *bd;
 	*ret = idx == bk_idx ? 0 : (alpha << 24);
-	*ret |= palette[*bd];
+	*ret |= palette[idx];
 	bd+= width;
 	return 0;
 }
@@ -54,7 +54,7 @@ int CImageGif::begin_draw(int x,int y)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CImageGif::load(u8 *src,int w,int h)
+int CImageGif::load(u8 *src,u32 sz,int w,int h)
 {
 	GifFileType *GifFile;
 	GifRecordType RecordType;

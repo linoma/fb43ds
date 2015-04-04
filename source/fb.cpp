@@ -11,10 +11,8 @@
 #include "utils.h"
 #include "jsmn.h"
 
-LPDEFFUNC pfn_State = NULL;
 CSysHelper *sys_helper = NULL;
 u8 *linear_buffer = NULL;
-FS_archive sdmcArchive;
 CFBClient *fb;
 static unsigned char fb_char_test[] = {"€,´,€,´,水,Д,Є"};
 //---------------------------------------------------------------------------
@@ -28,37 +26,9 @@ static int fb_authenticate(u32 arg0)
 	u32 val,*p;
 
 	top->HideDialog();
-	
-	for(int i=0;i<6;i++)
+	for(int i=101;i<106;i++)
 		bottom->remove(i);
-	CToolBar *b = new CToolBar();
-	b->create(0,0,320,28,1);		
-	b->set_BkColor(0xFFEEEEEE);
-	
-	CToolButton *c = new CToolButton();
-	c->create(0,0,22,22,1);
-	c->load(toolbar_img,12);
-	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
-	
-	c = new CToolButton();
-	c->create(0,0,22,22,2);
-	c->load(toolbar_img,10);
-	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
-
-	c = new CToolButton();
-	c->create(0,0,22,22,3);
-	c->load(toolbar_img,3);
-	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
-	
-	c = new CToolButton();
-	c->create(0,0,22,22,4);
-	c->load(toolbar_img,4);
-	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
-	bottom->add(b);
+	bottom->Invalidate();
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -137,13 +107,12 @@ static int on_clicked_login(CBaseWindow *w)
 {
 	CBaseWindow *b;
 	char email[30],pass[30];
-	
-	pfn_State = 0;
+
 	email[0]=0;
 	pass[0]=0;
-	b = bottom->get_Window(2);
+	b = bottom->get_Window(102);
 	b->get_Text(email,30);
-	b = bottom->get_Window(4);
+	b = bottom->get_Window(104);
 	b->get_Text(pass,30);
 	bottom->ShowDialog(console);	
 /*	if(!email[0] || !pass[0]){
@@ -159,34 +128,63 @@ static int on_clicked_login(CBaseWindow *w)
 //---------------------------------------------------------------------------
 static int fb_login(u32 arg0)
 {
-	CBaseWindow *b;
+	CBaseWindow *w;
 	
-	b = new CLabel("EMail");
-	b->create(60,20,50,20,1);
-	b->set_TextColor(0xff404040);
+	CToolBar *b = new CToolBar();
+	b->create(0,0,320,24,1);		
+	//b->set_BkColor(0xFFEEEEEE);
+	
+	CToolButton *c = new CToolButton();
+	c->create(0,0,22,22,1);
+	c->load(toolbar_img,12);
+	b->add(c);
+	c->set_Events("clicked",(void *)on_clicked_button);
+	
+	c = new CToolButton();
+	c->create(0,0,22,22,2);
+	c->load(toolbar_img,10);
+	b->add(c);
+	c->set_Events("clicked",(void *)on_clicked_button);
+
+	c = new CToolButton();
+	c->create(0,0,22,22,3);
+	c->load(toolbar_img,3);
+	b->add(c);
+	c->set_Events("clicked",(void *)on_clicked_button);
+	
+	c = new CToolButton();
+	c->create(0,0,22,22,4);
+	c->load(toolbar_img,4);
+	b->add(c);
+	c->set_Events("clicked",(void *)on_clicked_button);
 	bottom->add(b);
 	
-	b = new CEditText();
-	b->create(115,20,110,20,2);	
-	b->set_Text((char *)fb->get_Email());
-	bottom->add(b);
+	w = new CLabel("EMail");
+	w->create(60,30,50,20,101);
+	w->set_TextColor(0xff404040);
+	bottom->add(w);
 	
-	b = new CLabel("Password");
-	b->create(60,45,50,20,3);
-	b->set_TextColor(0xff404040);	
-	bottom->add(b);
+	w = new CEditText();
+	w->create(115,30,110,20,102);	
+	w->set_Text((char *)fb->get_Email());
+	bottom->add(w);
 	
-	b = new CEditText();
-	b->create(115,45,110,20,4);	
-	b->set_Text((char *)fb->get_Password());	
-	bottom->add(b);
+	w = new CLabel("Password");
+	w->create(60,53,50,20,103);
+	w->set_TextColor(0xff404040);	
+	bottom->add(w);
 	
-	b = new CButton("Connect");
-	b->create(110,70,100,25,5);
-	b->set_TextColor(0xff404040);	
-	bottom->add(b);
+	w = new CEditText();
+	w->create(115,53,110,20,104);	
+	w->set_Text((char *)fb->get_Password());	
+	bottom->add(w);
 	
-	b->set_Events("clicked",(void *)on_clicked_login);
+	w = new CButton("Connect");
+	w->create(110,80,100,25,105);
+	w->set_TextColor(0xff404040);	
+	bottom->add(w);
+	
+	w->set_Events("clicked",(void *)on_clicked_login);
 	
 	return 0;
 }
@@ -195,8 +193,8 @@ static int sys_init(u32 arg0)
 {	
 	int ret;
 	
-	loader_img->load((u8 *)loader_bin);	
-	toolbar_img->load((u8 *)toolbar_bin);	
+	loader_img->load((u8 *)loader_bin,loader_bin_size);	
+	toolbar_img->load((u8 *)toolbar_bin,toolbar_bin_size);	
 	top->init();
 	bottom->init();
 	print("\nrequesting...");
@@ -229,7 +227,7 @@ int CFBClient::Init()
 {
 	if((chat_list = new CChatList()) == NULL)
 		return -1;
-	if(chat_list->create(10,10,160,170,-1))
+	if(chat_list->create(0,0,160,239,-1))
 		return -2;
 	return 0;
 }
@@ -263,8 +261,6 @@ int CFBClient::Initialize()
 	sys_helper = new CSysHelper();
 	if(!sys_helper || sys_helper->Initialize())
 		return -4;
-	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-	FSUSER_OpenArchive(NULL, &sdmcArchive);
 	if(gui_init())
 		return -5;	
 	return 0;
@@ -306,9 +302,12 @@ int CFBClient::onKeysPressEvent(u32 value,u32 flags)
 {
 	CBaseWindow *w;
 	
-	w=top->onKeysPressEvent(value,flags);
-	if(w == NULL)
-		w = bottom->onKeysPressEvent(value,flags);
+	w = NULL;
+	if(top){
+		w=top->onKeysPressEvent(value,flags);
+		if(w == NULL)
+			w = bottom->onKeysPressEvent(value,flags);
+	}
 	return w != NULL;	
 }
 //---------------------------------------------------------------------------
@@ -316,14 +315,19 @@ int CFBClient::onKeysUpEvent(u32 value,u32 flags)
 {
 	CBaseWindow *w;
 	
-	w=top->onKeysUpEvent(value,flags);
-	if(w == NULL)
-		w = bottom->onKeysUpEvent(value,flags);
+	w = NULL;
+	if(top){
+		w = top->onKeysUpEvent(value,flags);
+		if(w == NULL)
+			w = bottom->onKeysUpEvent(value,flags);
+	}
 	return w != NULL;	
 }
 //---------------------------------------------------------------------------
 int CFBClient::onTouchEvent(touchPosition *p,u32 flags)
 {
+	if(!bottom)
+		return -1;
 	return bottom->onTouchEvent(p,flags) == 0 ? -1 : 0;
 }
 //---------------------------------------------------------------------------	
@@ -413,6 +417,12 @@ int CFBClient::onTimers(u32 id)
 int CFBClient::onClicked(u32 id)
 {
 	switch(id){
+		case 1:
+			if(chat_list->is_Visible())
+				chat_list->Hide();
+			else
+				chat_list->Show();
+		break;
 		default:
 		break;
 	}
@@ -540,8 +550,7 @@ int CFBClient::Main(u32 arg0)
 		break;
 		case 1:
 			fb_login(0);
-			top->add(chat_list);
-			chat_list->Show();
+			bottom->add(chat_list);
 			mode=-2;
 		break;
 		case 2:
@@ -621,6 +630,7 @@ int CFBClient::Main(u32 arg0)
 			mode=-1;
 		break;
 		case 100:
+		case 101:
 			if(!p[2] && chat_list)
 				chat_list->Update();
 			mode=-1;
