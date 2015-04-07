@@ -16,7 +16,7 @@ u8 *linear_buffer = NULL;
 CFBClient *fb;
 static unsigned char fb_char_test[] = {"€,´,€,´,水,Д,Є"};
 //---------------------------------------------------------------------------
-static int on_clicked_button(CBaseWindow *w)
+static int on_clicked_button(CBaseWindow *w,u32 param)
 {
 	return fb->onClicked(w->get_ID());	
 }
@@ -24,11 +24,23 @@ static int on_clicked_button(CBaseWindow *w)
 static int fb_authenticate(u32 arg0)
 {
 	u32 val,*p;
-
+	CBaseWindow *w;
+	
 	top->HideDialog();
+	top->set_BkColor(0xFFe9eaed);
+	
 	for(int i=101;i<106;i++)
 		bottom->remove(i);
-	bottom->Invalidate();
+	
+	w = new CEditBox();
+	w->create(5,30,250,100,2);
+	bottom->add(w);
+	
+	w = new CButton("Send");
+	w->create(260,110,55,20,3);
+	w->set_TextColor(0xff404040);	
+	bottom->add(w);
+	//bottom->Invalidate();
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -103,7 +115,7 @@ static int sys_login(u32 arg0)
 	return ret;
 }
 //---------------------------------------------------------------------------
-static int on_clicked_login(CBaseWindow *w)
+static int on_clicked_login(CBaseWindow *w,u32 param)
 {
 	CBaseWindow *b;
 	char email[30],pass[30];
@@ -138,25 +150,25 @@ static int fb_login(u32 arg0)
 	c->create(0,0,22,22,1);
 	c->load(toolbar_img,12);
 	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
+	c->set_Events("clicked",on_clicked_button);
 	
 	c = new CToolButton();
 	c->create(0,0,22,22,2);
 	c->load(toolbar_img,10);
 	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
+	c->set_Events("clicked",on_clicked_button);
 
 	c = new CToolButton();
 	c->create(0,0,22,22,3);
 	c->load(toolbar_img,3);
 	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
+	c->set_Events("clicked",on_clicked_button);
 	
 	c = new CToolButton();
 	c->create(0,0,22,22,4);
 	c->load(toolbar_img,4);
 	b->add(c);
-	c->set_Events("clicked",(void *)on_clicked_button);
+	c->set_Events("clicked",on_clicked_button);
 	bottom->add(b);
 	
 	w = new CLabel("EMail");
@@ -184,7 +196,7 @@ static int fb_login(u32 arg0)
 	w->set_TextColor(0xff404040);	
 	bottom->add(w);
 	
-	w->set_Events("clicked",(void *)on_clicked_login);
+	w->set_Events("clicked",on_clicked_login);
 	
 	return 0;
 }
@@ -237,6 +249,7 @@ CFBClient::CFBClient()
 	email = "";
 	pass = "";
 	mode = 0;
+	status=0;
 	chat_list = NULL;
 }
 //---------------------------------------------------------------------------
@@ -420,8 +433,10 @@ int CFBClient::onClicked(u32 id)
 		case 1:
 			if(chat_list->is_Visible())
 				chat_list->Hide();
-			else
+			else{
 				chat_list->Show();
+				bottom->BringWinTop(chat_list);
+			}
 		break;
 		default:
 		break;
@@ -554,6 +569,7 @@ int CFBClient::Main(u32 arg0)
 			mode=-2;
 		break;
 		case 2:
+			status |= 1;
 			fb_authenticate(0);
 			SetTimer(on_timer,30000,1);
 			SetTimer(on_timer,180000,2);

@@ -38,7 +38,7 @@ int gui_destroy()
 //---------------------------------------------------------------------------
 CTopDesktop::CTopDesktop() : CDesktop(GFX_TOP)
 {
-	bkcolor = 0xFFFFFFFF;//0xFFd3d8e8
+	bkcolor = 0xFfffffff;//0xFFd3d8e8
 	
 	logo = new CImageGif();
 	
@@ -76,7 +76,7 @@ int CTopDesktop::init()
 int CTopDesktop::EraseBkgnd(u8 *screen)
 {
 	if(!CDesktop::EraseBkgnd(screen)){
-		if(logo != NULL)
+		if(logo != NULL && !(fb->get_Status() & 1))
 			logo->draw(screen,10,30);
 		return 0;
 	}
@@ -132,9 +132,8 @@ int CBottomDesktop::draw(u8 *screen)
 CBottomDesktop::CBottomDesktop() : CDesktop(GFX_BOTTOM)
 {
 	//bkcolor = 0xFF3a5795;
-	bkcolor = 0xFFFFFFFF;//0xFFe9eaed;
+	bkcolor = 0xFFe9eaed;//0xFFe9eaed;
 	keyboard = new CKeyboard();
-	
 }
 //---------------------------------------------------------------------------
 CBottomDesktop::~CBottomDesktop()

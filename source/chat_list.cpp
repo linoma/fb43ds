@@ -5,13 +5,20 @@
 CChatList::CChatList() : CWindow()
 {
 	Hide();
-	set_Events("clicked",(void *)CChatList::onClick);
+	set_Events("clicked",CChatList::onClick);	
 	first_visible_item=0;
 	item_height=32;
 }
 //---------------------------------------------------------------------------
 CChatList::~CChatList()
 {
+}
+//---------------------------------------------------------------------------
+int CChatList::onActivate(int v)
+{
+	if(!v)
+		Hide();
+	return CWindow::onActivate(v);
 }
 //---------------------------------------------------------------------------
 int CChatList::EraseBkgnd(u8 *screen)
@@ -24,12 +31,20 @@ int CChatList::EraseBkgnd(u8 *screen)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CChatList::onClick(CBaseWindow *w)
+int CChatList::onClick(CBaseWindow *w,u32 param)
 {
-	return ((CChatList *)w)->onClickItem();
+	return ((CChatList *)w)->onClick();
 }
 //---------------------------------------------------------------------------
-int CChatList::onClickItem()
+int CChatList::onClickItem(CBaseWindow *w,u32 param)
+{
+	w = w->get_Parent();
+	if(!w)
+		return -1;
+	return ((CChatList *)w)->onClickItem((char *)param);
+}
+//---------------------------------------------------------------------------
+int CChatList::onClick()
 {
 	POINT pt;
 	u32 item;
@@ -40,30 +55,17 @@ int CChatList::onClickItem()
 		Hide();
 		return 0;
 	}		
-	pt.x -= rcWin.left;
-	pt.y -= rcWin.top;
-	item = first_visible_item + (pt.y/item_height);
-	u = get_UserFromIndex(item);
-	if(u)
-		printd((char *)u->get_Name());
-	printd("x=%d y=%d",pt.x,pt.y);
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CChatList::onScroll(CBaseWindow *sb)
+int CChatList::onClickItem(char *item)
 {
-	CBaseWindow *w;
+	CUser *u;
 	
-	if(!w)
+	if(!item || !users.count(item))
 		return -1;
-	w = sb->get_Parent();
-	if(!w)
-		return -2;
-	return ((CChatList *)w)->onVScroll((CScrollBar *)sb);
-}
-//---------------------------------------------------------------------------
-int CChatList::onVScroll(CScrollBar *sb)
-{
+	u = users[item];
+	u->show_chat();
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -75,19 +77,21 @@ CBaseWindow *CChatList::onKeysPressEvent(u32 press,u32 flags)
 //---------------------------------------------------------------------------
 int CChatList::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 {
-	CBaseWindow *b;
 	RECT rc;
 	
 	CWindow::create(x,y,w,h,id);
-	b = new CScrollBar();
+	lb = new CListBox();
 	get_ClientRect(&rc);
-	b->create(rc.right-9,rc.top,0,rc.bottom,1);
-	b->set_Events("clicked",(void *)CChatList::onScroll);
+	lb->create(rc.left,rc.top,rc.right-4,rc.bottom,1);
+	lb->set_ItemHeight(32);
+	lb->set_Events("drawitem",CChatList::onDrawItem);
+	lb->set_Events("clickitem",CChatList::onClickItem);
+	lb->set_BkColor(0);
 	rcHandle.right = rcWin.right;
 	rcHandle.left = rcHandle.right - 4;
 	rcHandle.top = rcWin.top + (((rcWin.bottom - rcWin.top) - 16) >> 1);
 	rcHandle.bottom = rcHandle.top + 24;
-	return add(b);
+	return add(lb);
 }
 //---------------------------------------------------------------------------
 int CChatList::Update()
@@ -96,30 +100,25 @@ int CChatList::Update()
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CChatList::draw(u8 *screen)
+int CChatList::onDrawItem(CBaseWindow *w,u32 param)
 {
-	int y;
-	RECT rc,rcItem;
-	u32 i;
-	
-	if(CWindow::draw(screen))
+	w = w->get_Parent();
+	if(!w)
 		return -1;
-	get_ClientRect(&rc,1);
-	y = rc.top;
-	CopyRect(rcItem,rc);
-	i=0;
-	for (std::map<std::string,CUser *>::iterator t = users.begin(); t != users.end(); ++t,i++){
-		if(i<first_visible_item)
-			continue;
-		rcItem.top = y;
-		rcItem.bottom = y + item_height;
-		if(rcItem.bottom>=rc.bottom)
-			break;
-		if(!t->second->draw(&rcItem,screen)){
-			y = rcItem.bottom + 1;
-		}
-	}
-	return 0;
+	return ((CChatList *)w)->onDrawItem((LPDRAWITEM)param);
+}
+//---------------------------------------------------------------------------
+int CChatList::onDrawItem(LPDRAWITEM p)
+{
+	CUser *u;
+	
+	if(!p)
+		return -1;	
+	if(users.count(p->value) == 0)
+		return -2;
+	u = (CUser *)users[p->value];
+	u->draw(p->prcItem,p->screen);
+	return p->prcItem->bottom - p->prcItem->top;
 }
 //---------------------------------------------------------------------------
 CUser *CChatList::add_user(const char *cid)
@@ -132,6 +131,7 @@ CUser *CChatList::add_user(const char *cid)
 	if(!p)
 		return NULL;
 	users[cid] = p;
+	lb->add_item((char *)cid);
 	return p;
 }
 //---------------------------------------------------------------------------

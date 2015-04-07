@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "gfxtext.h"
+#include "utils.h"
 
 static u32 color = 0xFFFFFFFF;
 //---------------------------------------------------------------------------
@@ -52,7 +53,7 @@ void gfxSetTextColor(u32 col)
 //---------------------------------------------------------------------------
 void gfxDrawText(u8* fb, font_s* f, char* str, LPRECT prc,u32 flags)
 {
-	int k,dx,dy,length,x,y;
+	int k,dx,dy,length,x,y,l,y0;
 	
 	if(!fb || !str || !str[0] || !prc)
 		return;
@@ -61,22 +62,29 @@ void gfxDrawText(u8* fb, font_s* f, char* str, LPRECT prc,u32 flags)
 	y = prc->top;
 	x = prc->left;
 	length = strlen(str);
-	if(flags & 1){
+	if(flags & (DT_CENTER|DT_VCENTER)){
 		SIZE sz;
 		
 		gfxGetTextExtent(f,str,&sz);
-		k = ((prc->bottom-y) - sz.cy)>>1;
-		y += k;
-		k = ((prc->right-x) - sz.cx)>>1;
-		x += k;
+		if(flags & DT_VCENTER){
+			k = ((prc->bottom-y) - sz.cy)>>1;
+			y += k;
+		}
+		if(flags & DT_CENTER){
+			k = ((prc->right-x) - sz.cx)>>1;
+			x += k;
+		}
 	}
 	y = 239 - y;
-	for(k=dx=dy=0;k<length;k++){
-		char c = str[k];
+	y0 = 239 - prc->bottom;
+	for(k=dx=dy=0;k<length;k += l){
+		char c = translate_UTF(&str[k],&l);
 		if(c == '\n'){
-			if(!(flags&2)){
+			if(!(flags & DT_SINGLELINE)){
 				dx = 0;
 				dy -= f->height;
+				if((y+dy) < y0)
+					break;
 			}
 			continue;
 		}
@@ -84,33 +92,37 @@ void gfxDrawText(u8* fb, font_s* f, char* str, LPRECT prc,u32 flags)
 		if(!cd->data)
 			continue;
 		if((x + cd->xa + dx) >= prc->right){
-			if(flags&2)
+			if(flags & DT_SINGLELINE)
 				return;
 			dx = 0;
 			dy -= f->height;
+			if((y+dy) < y0)
+				break;
+			
 		}		
 		dx += drawCharacter(fb,f,c,x+dx,y+dy);
 	}
 }
 //---------------------------------------------------------------------------
-int gfxGetTextExtent(font_s* f,const char *str, LPSIZE psz)
+int gfxGetTextExtent(font_s* f,const char *str, LPSIZE psz,u32 flags)
 {
+	int l,k,dx,dy,mdx;
+	
 	if(!str || !str[0])
 		return -1;
 	if(!psz)
 		return -2;
 	if(!f)
 		f = &fontDefault;
-	int k; int dx=0, dy=0,mdx=0;
-	int length=strlen(str);
-	for(k=0;k<length;k++){
-		u8 c = str[k];
+	dx=dy=mdx=0;
+	for(k=0;str[k] != 0;k+=l){
+		u8 c = translate_UTF(&str[k],&l);
 		charDesc_s* cd = &f->desc[(int)c];
 		if(!cd->data)
 			continue;
 		dx += cd->xa;
-		if(c == '\n'){
-			if(dx>mdx)
+		if(c == '\n' || ((flags & 1) && dx > psz->cx)){
+			if(dx > mdx)
 				mdx = dx;
 			dx = 0;
 			dy += f->height;

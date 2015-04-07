@@ -39,6 +39,7 @@ public:
 	static int get_buddy_list(u32 arg0);
 	char *get_UserId(){return userid;};
 	char *get_dtsg(){return dtsg;};
+	u32 get_Status(){return status;};
 protected:
 	int SetTimer(LPDEFFUNC f,u64 val,u32 p);
 	int parse_buddy_list(char *js,u32 sz);
@@ -48,6 +49,7 @@ protected:
 	int mode;
 	char *_buffer,dtsg[50],userid[15];
 	CChatList *chat_list;
+	u32 status;
 private:
 	int json_nodes_length(char *js,jsmntok_t *t,CUser *p);
 };

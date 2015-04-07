@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define IS_ENTITY(a,b) (!strncmp(a,b,strlen(b)))
 //---------------------------------------------------------------------------
 char *trim(char *s)
 {
@@ -102,6 +103,96 @@ char *stripslashes(char *s)
    }
    s[ii] = 0;
    return s;
+}
+//---------------------------------------------------------------------------------
+int translate_UTF(const char *text, int *i) 
+{
+	int code;
+	
+	*i = 0;
+	code = *text;
+	if(code > 127){
+		/*if(text[i] == 0xFF){
+			code = -1;
+			i++;
+		} 
+		else */
+		if(~code & 32){
+			code = ((code & 31) << 6) | (text[1] & 63);
+			*i = *i + 2;
+		} 
+		else if (~code & 16){
+			code = ((code & 31) << 12) | ((text[1] & 63) << 6) | (text[2] & 63);
+			*i = *i + 3;
+		} 
+		else if (~code & 8){
+			code = ((code & 31) << 18) | 
+				((text[1] & 63) << 12) | 
+				((text[2] & 63) << 6) | 
+				(text[3] & 63);
+			*i = *i + 4;
+		} 
+		else{
+			code = ((code & 31) << 24) | 
+				((text[1] & 63) << 18) | 
+				((text[2] & 63) << 12) | 
+				((text[3] & 63) << 6) | 
+				(text[4] & 63);
+			*i = *i + 5;
+		}
+	} 
+	else{		
+		if(code == '&'){
+			if(IS_ENTITY(&text[0],"&apos;")){
+				code = '\'';				
+				*i = *i + 5;
+			}
+			else if(IS_ENTITY(&text[0],"&amp;")){
+				code = '&';
+				*i = *i + 4;
+			}
+			else if(IS_ENTITY(&text[0],"&lt;")){
+				code = '<';
+				*i = *i + 3;
+			}
+			else if(IS_ENTITY(&text[0],"&gt;")){
+				code = '>';
+				*i = *i + 3;
+			}
+			else if(IS_ENTITY(&text[0],"&nbsp;")){
+				code = ' ';
+				*i = *i + 5;
+			}
+			else if(IS_ENTITY(&text[0],"&quot;")){
+				code = '\"';
+				*i = *i + 5;
+			}
+			else if(text[1] == '#'){
+				sscanf(&text[2],"%3d",&code);
+				*i = *i + 2 + 3;
+			}
+		}
+		else if(code == '\\' && text[1] == 'u'){
+			code = 32;
+			*i = *i + 5;
+		}
+		*i = *i + 1;
+	}
+	return code;
+}
+//---------------------------------------------------------------------------------
+int strlen_UTF(char *text)
+{
+	int x1,pos;
+	
+	if(text == NULL)
+		return 0;		
+	for(pos = 0;;){
+		if(translate_UTF(&text[pos],&x1) == 0)
+			break;
+		pos += x1;
+	}
+	return pos;
 }
 //---------------------------------------------------------------------------
 int printd(char *fmt,...)

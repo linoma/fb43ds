@@ -8,6 +8,16 @@
 #ifndef __WIDGETSH__
 #define __WIDGETSH__
 
+class CBaseWindow;
+
+typedef int (*LPEVENTFUNC)(CBaseWindow *,u32);
+typedef struct{
+	u8 *screen;
+	u32 index;
+	LPRECT prcItem;
+	char *value;
+} DRAWITEM,*LPDRAWITEM;
+
 //---------------------------------------------------------------------------
 class CBaseWindow {
 public:
@@ -30,11 +40,11 @@ public:
 	virtual int Invalidate(int flags=0);
 	virtual int set_Pos(int x, int y);
 	int get_WindowRect(LPRECT prc);
-	virtual int get_ClientRect(LPRECT prc,u32 flags=0){return get_WindowRect(prc);};
+	virtual int get_ClientRect(LPRECT prc,u32 flags=0);
 	virtual int set_Text(char *s);	
 	int get_Text(char *s,u32 len);
 	u32 get_ID(){return ID;};
-	int set_Events(char *key,void *value);
+	int set_Events(char *key,LPEVENTFUNC value);
 	virtual int Show();
 	virtual int Hide();
 	virtual int is_Visible(){return (status & 4) == 0;};
@@ -43,7 +53,7 @@ private:
 protected:
 	virtual int is_invalidate();
 	virtual int destroy();
-	virtual int fire_event(const char *key);
+	virtual int fire_event(const char *key,u32 param = 0);
 	int has_event(const char *key);
 	CBaseWindow *get_Desktop();
 	virtual u32 adjust_AlphaColor(u32 col);
@@ -74,6 +84,7 @@ public:
 	virtual CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);
 	virtual CBaseWindow *onKeysPressEvent(u32 press,u32 flags=0);
 	virtual CBaseWindow *onKeysUpEvent(u32 press,u32 flags=0);
+	virtual int set_Pos(int x, int y);
 protected:
 	virtual int EraseBkgnd(u8 *screen);
 	std::vector<CBaseWindow *>wins;
@@ -115,8 +126,11 @@ public:
 	virtual int draw(u8 *screen);
 	virtual int Invalidate(int flags=0);
 	virtual int init(){return -1;};
+	int BringWinTop(CBaseWindow *w);
+	int ActiveWindow(CBaseWindow *w);
 	virtual CBaseWindow *onTouchEvent(touchPosition *p,u32 flags=0);
 	virtual CBaseWindow *onKeysPressEvent(u32 press,u32 flags=0);
+	CBaseWindow *get_ActiveWindow(){return a_win;};
 protected:
 	virtual int onActivateWindow(CBaseWindow *win);
 	CBaseWindow *a_win,*dlg_win;
@@ -220,17 +234,37 @@ protected:
 	POINT ptCursor;
 };
 //---------------------------------------------------------------------------
-class CEditBox : public CEditText
+class CEditBox : public CContainerWindow
 {
 public:
 	CEditBox();
+	virtual ~CEditBox(){};
+	int create(u32 x,u32 y,u32 w,u32 h,u32 id);
+	int onActivate(int v);
+protected:
+	int EraseBkgnd(u8 *screen);
+	CScrollBar *vbar;
+	POINT ptCursor;
 };
 //---------------------------------------------------------------------------
-class CListBox : public CBaseWindow{
+class CListBox : public CContainerWindow{
 public:
 	CListBox();
 	virtual ~CListBox(){};
-	int draw(u8 *screen){return 0;};
+	virtual int create(u32 x,u32 y,u32 w,u32 h,u32 id);
+	virtual int draw(u8 *screen);
+	static int onScroll(CBaseWindow *sb,u32 param);
+	static int onClicked(CBaseWindow *sb,u32 param);
+	int onClicked(u32 param);
+	int onScroll(u32 param);
+	int add_item(char *val);
+	int remove_item(u32 idx);
+	int set_ItemHeight(u32 val);
+	u32 get_ItemHeight(){return item_height;};
+protected:
+	CScrollBar *vbar;
+	u32 first_visible_item,item_height;
+	std::vector<std::string> items;
 };
 //---------------------------------------------------------------------------
 class CToolBar : public CContainerWindow{

@@ -10,6 +10,7 @@ u32* gpuOut = (u32*)0x1F119400;
 u32* gpuDOut = (u32*)0x1F370800;
 
 static touchPosition lt;
+static circlePosition lcp;
 //---------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
@@ -27,10 +28,14 @@ int main(int argc, char** argv)
 		u32 press = hidKeysDown();
 		u32 held = hidKeysHeld();
 		u32 release = hidKeysUp();
-		if((press & ~KEY_TOUCH))
+		if((press & ~KEY_TOUCH)){
 			CFBClient::onKeysPressEvent(press,1);
-		if((release & ~KEY_TOUCH))
+			hidCircleRead(&lcp);
+		}
+		if((release & ~KEY_TOUCH)){
 			CFBClient::onKeysUpEvent(press,1);
+			hidCircleRead(&lcp);
+		}
 		if (held & KEY_TOUCH){
 			hidTouchRead(&lt);
 			if(!lp_frame){

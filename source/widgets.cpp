@@ -174,17 +174,17 @@ int CBaseWindow::has_event(const char *key)
 	return 0;
 }
 //---------------------------------------------------------------------------
-int CBaseWindow::fire_event(const char *key)
+int CBaseWindow::fire_event(const char *key,u32 param)
 {
-	if(!key || !key[0] || events.count(key)==0)
+	if(has_event(key))
 		return -1;
-	void *v = events[key];
+	LPEVENTFUNC v = (LPEVENTFUNC)events[key];
 	if(!v)
 		return -2;
-	return ((int (*)(CBaseWindow *))v)(this);
+	return v(this,param);
 }
 //---------------------------------------------------------------------------
-int CBaseWindow::set_Events(char *key,void *value)
+int CBaseWindow::set_Events(char *key,LPEVENTFUNC value)
 {
 	char *p;
 	
@@ -194,7 +194,7 @@ int CBaseWindow::set_Events(char *key,void *value)
 	if(!p)
 		return -2;
 	strcpy(p,key);
-	events[strtolower(p)] = value;
+	events[strtolower(p)] = (void *)value;
 	free(p);
 	return 0;
 }
@@ -343,10 +343,25 @@ int CBaseWindow::destroy()
 //---------------------------------------------------------------------------
 int CBaseWindow::get_WindowRect(LPRECT prc)
 {
+	if(!prc)
+		return -1;
 	prc->left = rcWin.left;
 	prc->top = rcWin.top;
 	prc->bottom = rcWin.bottom;
 	prc->right = rcWin.right;
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CBaseWindow::get_ClientRect(LPRECT prc,u32 flags)
+{
+	int res = get_WindowRect(prc);
+	if(res)
+		return res;
+	if(flags&1)
+		return 0;
+	prc->right -= prc->left;
+	prc->bottom -= prc->top;
+	prc->left=prc->top=0;
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -389,6 +404,23 @@ int CContainerWindow::Invalidate(int flags)
 	CBaseWindow::Invalidate(flags);
 	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win,i++)
 		(*win)->Invalidate(flags);
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CContainerWindow::set_Pos(int x, int y)
+{
+	RECT rc;
+	int xx,yy,x0,y0;
+	
+	xx = rcWin.left;
+	yy = rcWin.top;	
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		(*win)->get_WindowRect(&rc);
+		x0=rc.left-xx;
+		y0=rc.top-yy;
+		(*win)->set_Pos(x+x0,y+y0);
+	}
+	CBaseWindow::set_Pos(x,y);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -445,6 +477,8 @@ int CContainerWindow::recalc_layout()
 //---------------------------------------------------------------------------
 CBaseWindow *CContainerWindow::onTouchEvent(touchPosition *p,u32 flags)
 {
+	if(status&4)
+		return 0;
 	for (std::vector<CBaseWindow *>::reverse_iterator win = wins.rbegin(); win != wins.rend(); ++win){
 		if((*win)->onTouchEvent(p,flags))
 			return *win;
@@ -518,9 +552,12 @@ CBaseWindow *CDesktop::onTouchEvent(touchPosition *p,u32 flags)
 int CDesktop::onActivateWindow(CBaseWindow *win)
 {
 	if(a_win != win){
-		if(a_win != NULL)
-			a_win->onActivate(0);
+		CBaseWindow *w;
+		
+		w = a_win;
 		a_win = win;
+		if(w != NULL)
+			w->onActivate(0);
 		win->onActivate(1);
 	}
 	return 0;
@@ -590,6 +627,32 @@ int CDesktop::Invalidate(int flags)
 		dlg_win->Invalidate(flags);
 	return res;
 }
+//---------------------------------------------------------------------------	
+int CDesktop::ActiveWindow(CBaseWindow *w)
+{
+	if(w==NULL)
+		return -1;
+	if(BringWinTop(w))
+		return -2;
+	onActivateWindow(w);
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------	
+int CDesktop::BringWinTop(CBaseWindow *w)
+{
+	if(w == wins.back())
+		return 0;
+	for (std::vector<CBaseWindow *>::iterator win = wins.begin(); win != wins.end(); ++win){
+		if((*win) == w){
+			wins.erase(win);
+			wins.push_back(w);
+			Invalidate();
+			return 0;
+		}
+	}
+	return -2;
+}
 //---------------------------------------------------------------------------
 CWindow::CWindow() : CContainerWindow()
 {
@@ -617,7 +680,7 @@ int CWindow::EraseBkgnd(u8 *screen)
 		rc.bottom = rc.top + szCaption.cy + 1;
 		gfxGradientFillRect(&rc,4,3,0xFFdddddd,0xFFb0b0b0,screen);
 		gfxSetTextColor(color|0xff000000);
-		gfxDrawText(screen,font,text,&rc,1);
+		gfxDrawText(screen,font,text,&rc,DT_VCENTER|DT_CENTER);
 	}
 	return 0;
 }
@@ -626,15 +689,15 @@ int CWindow::get_ClientRect(LPRECT prc,u32 flags)
 {
 	if(!prc)
 		return -1;
-	prc->left = 1;
-	prc->right = rcWin.right-rcWin.left-1;
+	prc->left = 2;
+	prc->right = rcWin.right-rcWin.left-prc->left*2;
 	prc->top = 3;
 	if(text)
 		prc->top += szCaption.cy;
-	prc->bottom = rcWin.bottom-rcWin.top-1-prc->top;
+	prc->bottom = rcWin.bottom-rcWin.top-prc->left-prc->top;
 	if(flags&1){
 		prc->left += rcWin.left;
-		prc->right += rcWin.right;
+		prc->right += rcWin.left;
 		prc->top += rcWin.top;
 		prc->bottom += rcWin.top;
 	}
@@ -650,12 +713,28 @@ CLabel::CLabel(char *c) : CBaseWindow()
 //---------------------------------------------------------------------------
 int CLabel::draw(u8 *screen)
 {
+	LPEVENTFUNC pfn;
+	int res;
+	
 	if(is_invalidate())
 		return -1;
 	if(!text || !text[0])
 		return -2;
-	gfxSetTextColor(color);
-	gfxDrawText(screen,font,text,&rcWin,0);
+	res = 1;
+	if(!has_event("drawitem")){
+		if((pfn = (LPEVENTFUNC)events["drawitem"]) != NULL){
+			DRAWITEM dw;
+			
+			dw.value = text;
+			dw.prcItem = &rcWin;
+			dw.screen = screen;
+			res = pfn(this,(u32)&dw);
+		}
+	}
+	if(res){
+		gfxSetTextColor(color);
+		gfxDrawText(screen,font,text,&rcWin,0);
+	}
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -684,7 +763,7 @@ int CButton::draw(u8 *screen)
 	gfxRect(&rcWin,0x80aaaaaa,screen);
 	if(text){
 		gfxSetTextColor(color);
-		gfxDrawText(screen,font,text,&rcWin,1);
+		gfxDrawText(screen,font,text,&rcWin,DT_VCENTER|DT_CENTER);
 	}
 	return 0;
 }
@@ -700,7 +779,7 @@ CBaseWindow *CButton::onKeysPressEvent(u32 press,u32 flags)
 //---------------------------------------------------------------------------
 CStatusBar::CStatusBar() : CContainerWindow()
 {
-	bkcolor = 0xFF3c5998;
+	bkcolor = 0xFF2a2a2a;
 }
 //---------------------------------------------------------------------------
 CStatusBar::~CStatusBar()
@@ -710,7 +789,7 @@ CStatusBar::~CStatusBar()
 int CStatusBar::EraseBkgnd(u8 *screen)
 {
 	if(!is_invalidate()){
-		gfxGradientFillRect(&rcWin,0,1,0xFF4e69a2,bkcolor,screen);
+		gfxGradientFillRect(&rcWin,0,1,0xFF4a4a4a,bkcolor,screen);
 		return 0;
 	}
 	return -1;
@@ -740,7 +819,7 @@ int CEditText::create(u32 x,u32 y,u32 w,u32 h,u32 id)
 {
 	SIZE sz;
 	
-	gfxGetTextExtent(NULL,"X",&sz);
+	gfxGetTextExtent(font,"X",&sz);
 	return CBaseWindow::create(x,y,w,sz.cy+4,id);
 }
 //---------------------------------------------------------------------------
@@ -754,7 +833,7 @@ int CEditText::draw(u8 *screen)
 			
 			CopyRect(rc,rcWin);
 			InflateRect(rc,2,2);
-			gfxDrawText(screen,NULL,&text[char_pos],&rc,2);
+			gfxDrawText(screen,NULL,&text[char_pos],&rc,DT_SINGLELINE|DT_VCENTER);
 		}
 	}
 	return res;
@@ -916,7 +995,7 @@ CDialog::~CDialog()
 //---------------------------------------------------------------------------
 CToolBar::CToolBar() : CContainerWindow()
 {
-	bkcolor = 0xFF5856d6;
+	bkcolor = 0xFF4e69a2;
 }
 //---------------------------------------------------------------------------
 CToolBar::~CToolBar()
@@ -944,9 +1023,9 @@ int CToolBar::EraseBkgnd(u8 *screen)
 {
 	if(is_invalidate())
 		return -1;
-	gfxGradientFillRect(&rcWin,0,1,0xff34aadc,bkcolor,screen);
-	gfxLine(rcWin.left,rcWin.bottom-1,rcWin.right,rcWin.bottom-1,0x80a0a0a0,screen);
-	gfxLine(rcWin.left,rcWin.bottom,rcWin.right,rcWin.bottom,0x80404040,screen);
+	gfxGradientFillRect(&rcWin,0,1,0xff3b5998,bkcolor,screen);
+//	gfxLine(rcWin.left,rcWin.bottom-1,rcWin.right,rcWin.bottom-1,0x80a0a0a0,screen);
+//	gfxLine(rcWin.left,rcWin.bottom,rcWin.right,rcWin.bottom,0x80404040,screen);
 	return 0;
 }
 //---------------------------------------------------------------------------
@@ -1099,4 +1178,173 @@ fail:
 	if(!CBaseWindow::onTouchEvent(p,flags))
 		return 0;
 	return this;
+}
+//---------------------------------------------------------------------------
+CListBox::CListBox() : CContainerWindow()
+{
+	SIZE sz;
+	
+	first_visible_item=0;
+	vbar = NULL;
+	gfxGetTextExtent(font,"X",&sz);
+	item_height = sz.cy;	
+}
+//---------------------------------------------------------------------------
+int CListBox::create(u32 x,u32 y,u32 w,u32 h,u32 id)
+{
+	RECT rc;
+	
+	CContainerWindow::create(x,y,w,h,id);
+	vbar = new CScrollBar();
+	get_ClientRect(&rc);
+	vbar->create(rc.right-6,rc.top,0,rc.bottom,1);
+	vbar->set_Events("clicked",CListBox::onScroll);
+	set_Events("clicked",CListBox::onClicked);
+	return add(vbar);	
+}
+//---------------------------------------------------------------------------
+int CListBox::onScroll(CBaseWindow *sb,u32 param)
+{
+	return ((CListBox *)sb)->onScroll(param);
+}
+//---------------------------------------------------------------------------
+int CListBox::onClicked(CBaseWindow *sb,u32 param)
+{
+	return ((CListBox *)sb)->onClicked(param);
+}
+//---------------------------------------------------------------------------
+int CListBox::onClicked(u32 param)
+{
+	POINT pt;
+	u32 item,i;
+	
+	getCursorPos(&pt);
+	pt.x -= rcWin.left;
+	pt.y -= rcWin.top;
+	i=0;
+	item = first_visible_item + (pt.y / item_height);
+	for (std::vector<std::string>::iterator t = items.begin(); t != items.end(); ++t,i++){
+		if(i < first_visible_item)
+			continue;
+		if(i == item){
+			fire_event("clickitem",(u32)(*t).c_str());
+			break;
+		}
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CListBox::onScroll(u32 param)
+{
+	return 0;
+}	
+//---------------------------------------------------------------------------
+int CListBox::remove_item(u32 idx)
+{
+	if(idx == 0xffffffff)
+		items.clear();
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CListBox::add_item(char *val)
+{
+	if(!val || !*val)
+		return -1;
+	items.push_back(val);
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CListBox::set_ItemHeight(u32 val)
+{
+	item_height=val;
+	Invalidate();
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CListBox::draw(u8 *screen)
+{
+	DRAWITEM dwItem;
+	int y;
+	RECT rc,rcItem;
+	u32 i,res;	
+	LPEVENTFUNC pfn;
+	
+	if(CContainerWindow::draw(screen))
+		return -1;
+	get_ClientRect(&rc,1);
+	rc.right -= 6;
+	y = rc.top;
+	CopyRect(rcItem,rc);
+	i = 0;
+	pfn = NULL;
+	if(!has_event("drawitem")){
+		if((pfn = (LPEVENTFUNC)events["drawitem"]) != NULL){
+			dwItem.screen = screen;
+			dwItem.prcItem = &rcItem;
+		}
+	}	
+	gfxSetTextColor(color);
+	for (std::vector<std::string>::iterator t = items.begin(); t != items.end(); ++t,i++){
+		if(i < first_visible_item)
+			continue;
+		rcItem.top = y;
+		rcItem.bottom = y + item_height;
+		if(rcItem.bottom >= rc.bottom)
+			break;
+		res = -1;
+		if(pfn){
+			dwItem.index = i;
+			dwItem.value = (char *)(*t).c_str();
+			res = pfn(this,(u32)&dwItem);
+		}
+		if(res<0){
+			gfxDrawText(screen,NULL,(char *)(*t).c_str(),&rcItem,DT_VCENTER);
+			res = item_height;
+		}
+		y += res + 1;
+	}
+	return 0;
+}
+//---------------------------------------------------------------------------
+CEditBox::CEditBox() : CContainerWindow()
+{
+}
+//---------------------------------------------------------------------------
+int CEditBox::create(u32 x,u32 y,u32 w,u32 h,u32 id)
+{
+	RECT rc;
+	
+	CContainerWindow::create(x,y,w,h,id);
+	vbar = new CScrollBar();
+	get_ClientRect(&rc);
+	vbar->create(rc.right-7,rc.top+2,0,rc.bottom-4,1);
+	//vbar->set_Events("clicked",CListBox::onScroll);
+	//set_Events("clicked",CListBox::onClicked);
+	return add(vbar);	
+}
+//---------------------------------------------------------------------------
+int CEditBox::EraseBkgnd(u8 *screen)
+{
+	if(is_invalidate())
+		return -1;
+	gfxFillRoundRect(&rcWin,3,color,bkcolor,screen);
+	return 0;
+}
+//---------------------------------------------------------------------------
+int CEditBox::onActivate(int v)
+{
+	CDesktop *d;
+	
+	d = (CDesktop *)get_Desktop();
+	CContainerWindow::onActivate(v);
+	if(v){
+		ptCursor.x = rcWin.left+3;
+		ptCursor.y = rcWin.top+3;
+		d->ShowCursor(this,ptCursor.x,ptCursor.y);
+	}
+	else
+		d->HideCursor();
+	return 0;
 }
